@@ -1,0 +1,8 @@
+TEMP_FOLDER = './_temp'
+CHROMA_PATH = 'chroma'
+COLLECTION_NAME = ''
+LLM_MODEL = ''
+TEXT_EMBEDDING_MODEL = ''
+URL_CONNECTION_MONGODB = 'mongodb+srv://<username>:<password>@cluster0.exemplo.mongodb.net/<database>?retryWrites=true&w=majority'
+MONGODB_NAME = ''
+MONGODB_COLLECTION = ''

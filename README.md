@@ -9,6 +9,7 @@
 - unstructured
 - "unstructured[all-docs]"
 - ollama
+- pymongo
 
 
 ```bash
@@ -16,9 +17,8 @@ python3 -m venv venv
 ```
 
 ```bash
-$ source venv/bin/activate
 # Windows
-# venv\Scripts\activate
+venv\Scripts\activate
 ```
 
 Para a query:
@@ -28,9 +28,11 @@ pip install Flask Flask-Cors ollama
 
 Para o embed:
 ```bash
-pip install dotenv langchain langchain-text-splitters langchain-community chromadb unstructured
+pip install dotenv langchain langchain-text-splitters langchain-community chromadb unstructured pymongo
 ```
 
 ```bash
 pip install "unstructured[all-docs]"
 ```
+
+E use o sampleenv.txt para criar seu .env com suas variáveis de ambiente.

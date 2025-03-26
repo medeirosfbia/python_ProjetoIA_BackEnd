@@ -8,7 +8,7 @@ CHROMA_PATH = os.getenv('CHROMA_PATH')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME')
 TEXT_EMBEDDING_MODEL = os.getenv('TEXT_EMBEDDING_MODEL')
 
-def criar_banco_de_dados():
+def get_vector_db():
     """
     Cria um banco de dados de vetores usando o modelo de gerador de embeddings especificado.
     Primeiro, configura a geração das embeddings com o modelo e a barra de progresso.
