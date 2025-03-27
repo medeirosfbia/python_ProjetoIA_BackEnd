@@ -110,6 +110,7 @@ def add_messages(user_id, chat_id, query, model_response):
         update_chat(user_id, chat_id, "assistant", model_response)
 
 
+
 def query_new_chat(user_id: str, query: str) -> str:
     # Cria nova conversa
     chat_id = create_chat(user_id, title = f'Dúvida: {query[:30]}...')
@@ -124,28 +125,28 @@ def query_new_chat(user_id: str, query: str) -> str:
         ])
         model_response = response['message']['content']
 
-        # Salva ambas as mensagens
-        add_messages(user_id, chat_id, query, model_response)
-
-        return {
-            "chat_id": chat_id,
-            "resposta": model_response
-        }
-
     except Exception as e:
         print(f"Erro ao consultar o modelo: {e}")
         raise
+
+    # Salva ambas as mensagens
+    add_messages(user_id, chat_id, query, model_response)
+
+    return {
+        "chat_id": chat_id,
+        "resposta": model_response
+    }
 
 
 
 def continue_chat(user_id: str, chat_id: str, query: str) -> str:
     # Recupera histórico
-    conv = get_chat_messages(user_id, chat_id)
+    chat = get_chat_messages(user_id, chat_id)
 
 
     # Prepara contexto
     messages = [{"role": "system", "content": "Continue a explicação matemática:"}]
-    messages.extend(conv["messages"][-10:])  # Últimas 10 mensagens
+    messages.extend(chat["messages"][-10:])  # Últimas 10 mensagens
     messages.append({"role": "user", "content": query})
 
     try:

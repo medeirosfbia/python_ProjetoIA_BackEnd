@@ -53,9 +53,14 @@ def route_query_old():
 
 # Rota NOVA para processar consultas (Utiliza MongoDB)
 @app.route('/chats/new', methods=['POST'])
-def route_query():
+def route_new_chat():
+    user_id = request.args.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    
     data = request.get_json()  # Obtém os dados da requisição JSON
-    response = query_new_chat(data.get('user_id'), data.get('message'))  # Chama a função query com a mensagem enviada
+    response = query_new_chat(user_id, data.get('message'))  # Chama a função query com a mensagem enviada
 
     if response:
         return jsonify({"answer": response}), 200  # Retorna a resposta com status 200
@@ -63,10 +68,18 @@ def route_query():
         return jsonify({"error": "Something went wrong"}), 400  # Retorna erro se a consulta falhar
         
 
-@app.route('/chats/<chat_id>/new', methods=['POST'])
-def route_query():
+@app.route('/chats/<chat_id>/add', methods=['POST'])
+def route_resume_chat(chat_id):
+
+    user_id = request.args.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    
     data = request.get_json()  # Obtém os dados da requisição JSON
-    response = query_new_chat(data.get('user_id'), data.get('message'))  # Chama a função query com a mensagem enviada
+    message = data.get('message')
+
+    response = continue_chat(user_id, chat_id, message)  # Chama a função query com a mensagem enviada
 
     if response:
         return jsonify({"answer": response}), 200  # Retorna a resposta com status 200
@@ -75,7 +88,7 @@ def route_query():
     
 
 @app.route('/chats', methods=['GET'])
-def list_chats_route():
+def route_list_chats():
     user_id = request.args.get('user_id')
 
     if not user_id:
