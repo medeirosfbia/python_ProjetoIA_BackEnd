@@ -40,7 +40,7 @@ def route_embed():
     # Retorna erro se a incorporação falhar
 
 # Rota antiga para processar consultas
-@app.route('/query/old', methods=['POST'])
+@app.route('/query', methods=['POST'])
 def route_query_old():
     data = request.get_json()  # Obtém os dados da requisição JSON
     response = query_old(data.get('message'))  # Chama a função query com a mensagem enviada
