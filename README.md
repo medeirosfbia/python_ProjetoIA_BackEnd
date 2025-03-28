@@ -28,7 +28,7 @@ pip install Flask Flask-Cors ollama
 
 Para o embed:
 ```bash
-pip install dotenv langchain langchain-text-splitters langchain-community chromadb unstructured pymongo
+pip install dotenv langchain langchain-text-splitters langchain-community langchain-ollama langchain-chroma chromadb unstructured pymongo
 ```
 
 ```bash

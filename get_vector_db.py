@@ -1,7 +1,7 @@
 # Importando as bibliotecas necessárias para o script
 import os
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.vectorstores.chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
+from langchain_chroma import Chroma
 
 # Variáveis de ambiente que serão utilizadas pelo código
 CHROMA_PATH = os.getenv('CHROMA_PATH')
@@ -18,7 +18,7 @@ def get_vector_db():
     """
 
     # Configura a geração das embeddings utilizando o modelo fornecido
-    embbeding = OllamaEmbeddings(model=TEXT_EMBEDDING_MODEL, show_progress=True)
+    embbeding = OllamaEmbeddings(model=TEXT_EMBEDDING_MODEL)
 
     db = Chroma(
         collection_name=COLLECTION_NAME,
