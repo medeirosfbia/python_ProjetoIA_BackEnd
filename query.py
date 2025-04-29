@@ -113,7 +113,7 @@ def add_messages(user_id, chat_id, query, model_response):
 
 def query_new_chat(user_id: str, query: str) -> str:
     # Cria nova conversa
-    chat_id = create_chat(user_id, title = f'Dúvida: {query[:30]}...')
+    chat_id = create_chat(user_id, title = f'{query[:30].capitalize}...')
 
     try:
         response = ollama.chat(model=LLM_MODEL, messages=[
