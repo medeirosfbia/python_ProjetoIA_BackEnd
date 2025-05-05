@@ -44,45 +44,45 @@ LLM_MODEL = os.getenv('LLM_MODEL')
 
 #     return rag_chain.invoke(query)
 
-def build_chat_history(user_id, new_message):
-    """Constroi o histórico de mensagens no formato Ollama a partir do MongoDB."""
-    history = get_conversation_history(user_id)
-    messages = [
-        {
-            'role' : 'system',
-            'content': 'Você é um assistente especializado em resolver problemas matemáticos. Responda com o passo a passo de forma clara e concisa. Responda sempre em Português Brasileiro',
-        },
-    ]
+# def build_chat_history(user_id, new_message):
+#     """Constroi o histórico de mensagens no formato Ollama a partir do MongoDB."""
+#     history = get_conversation_history(user_id)
+#     messages = [
+#         {
+#             'role' : 'system',
+#             'content': 'Você é um assistente especializado em resolver problemas matemáticos. Responda com o passo a passo de forma clara e concisa. Responda sempre em Português Brasileiro',
+#         },
+#     ]
 
-    for conv in history:
-        for msg in conv['messages']:
-            messages.append({
-                'role': msg['role'],
-                'content': msg['content']
-            })
+#     for conv in history:
+#         for msg in conv['messages']:
+#             messages.append({
+#                 'role': msg['role'],
+#                 'content': msg['content']
+#             })
 
-    messages.append({
-        'role': 'user',
-        'content': new_message
-    })
-    return messages
+#     messages.append({
+#         'role': 'user',
+#         'content': new_message
+#     })
+#     return messages
 
-def query(user_id, query):
+# def query(user_id, query):
 
-    # Recupera histórico e envia ao Ollama
-    messages = build_chat_history(user_id, query)
+#     # Recupera histórico e envia ao Ollama
+#     messages = build_chat_history(user_id, query)
 
-    try:
-        response = ollama.chat(model=LLM_MODEL, messages=messages)
-        model_response = response['message']['content']
+#     try:
+#         response = ollama.chat(model=LLM_MODEL, messages=messages)
+#         model_response = response['message']['content']
     
-        # Salva no MongoDB
-        save_conversation(user_id, query, model_response)
-        return model_response
+#         # Salva no MongoDB
+#         save_conversation(user_id, query, model_response)
+#         return model_response
 
-    except Exception as e:
-        print(f"Erro ao consultar o modelo: {e}")
-        raise
+#     except Exception as e:
+#         print(f"Erro ao consultar o modelo: {e}")
+#         raise
 
 # user_id = "aluno123"
 # pergunta = "Qual é a integral de 2x dx?"
@@ -103,6 +103,8 @@ def query_old(query):
     ])
 
     return response['message']['content']
+
+
 
 
 def add_messages(user_id, chat_id, query, model_response):

@@ -113,6 +113,22 @@ def get_chat(chat_id):
     # 3. Retornar os dados
     return jsonify(chat), 200
 
+@app.route('/chats/<chat_id>/delete', methods=['DELETE'])
+def delete_chat(chat_id):
+    # 1. Obter user_id (agora obrigatório)
+    user_id = request.args.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    
+    # 2. Deletar conversa
+    result = delete_conversation(user_id, chat_id)
+
+    if result:
+        return jsonify({"success": "Conversa deletada com sucesso"}), 200
+    else:
+        return jsonify({"error": "Erro ao deletar conversa"}), 500
+
 
 # Inicia o servidor Flask quando o script for executado diretamente
 if __name__ == "__main__":

@@ -63,27 +63,31 @@ def get_chat_messages(user_id, chat_id):
         return conv
 
 
+def delete_conversation(user_id: str, chat_id: str) -> bool:
+    """Deleta uma conversa do MongoDB."""
+    result = collection.delete_one({"user_id": user_id, "chat_id": chat_id})
+    return result.deleted_count == 1  # Retorna True se a conversa foi deletada com sucesso
 
 
 
 
 
-def save_conversation(user_id, user_message, assistant_response):
-    """Salva uma interação no MongoDB."""
-    conversation = {
-        "user_id": user_id,
-        "messages": [
-            {"role": "user", "content": user_message, "timestamp": datetime.now()},
-            {"role": "assistant", "content": assistant_response, "timestamp": datetime.now()}
-        ],
-        "last_updated": datetime.now()
-    }
-    collection.insert_one(conversation)
+# def save_conversation(user_id, user_message, assistant_response):
+#     """Salva uma interação no MongoDB."""
+#     conversation = {
+#         "user_id": user_id,
+#         "messages": [
+#             {"role": "user", "content": user_message, "timestamp": datetime.now()},
+#             {"role": "assistant", "content": assistant_response, "timestamp": datetime.now()}
+#         ],
+#         "last_updated": datetime.now()
+#     }
+#     collection.insert_one(conversation)
 
-def get_conversation_history(user_id, limit=5):
-    """Recupera o histórico de conversas de um usuário."""
-    history = collection.find(
-        {"user_id": user_id},
-        {"_id": 0, "messages": 1}
-    ).sort("last_updated", -1).limit(limit)
-    return list(history)
+# def get_conversation_history(user_id, limit=5):
+#     """Recupera o histórico de conversas de um usuário."""
+#     history = collection.find(
+#         {"user_id": user_id},
+#         {"_id": 0, "messages": 1}
+#     ).sort("last_updated", -1).limit(limit)
+#     return list(history)
