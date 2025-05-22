@@ -1,14 +1,14 @@
 # Importando as bibliotecas necessárias para o script
 import os
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.vectorstores.chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
+from langchain_chroma import Chroma
 
 # Variáveis de ambiente que serão utilizadas pelo código
 CHROMA_PATH = os.getenv('CHROMA_PATH')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME')
 TEXT_EMBEDDING_MODEL = os.getenv('TEXT_EMBEDDING_MODEL')
 
-def criar_banco_de_dados():
+def get_vector_db():
     """
     Cria um banco de dados de vetores usando o modelo de gerador de embeddings especificado.
     Primeiro, configura a geração das embeddings com o modelo e a barra de progresso.
@@ -18,7 +18,7 @@ def criar_banco_de_dados():
     """
 
     # Configura a geração das embeddings utilizando o modelo fornecido
-    embbeding = OllamaEmbeddings(model=TEXT_EMBEDDING_MODEL, show_progress=True)
+    embbeding = OllamaEmbeddings(model=TEXT_EMBEDDING_MODEL)
 
     db = Chroma(
         collection_name=COLLECTION_NAME,
