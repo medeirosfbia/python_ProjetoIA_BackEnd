@@ -24,12 +24,12 @@ $ source venv/bin/activate
 
 Para a query:
 ```bash
-pip install Flask Flask-Cors ollama pymongo
+pip install Flask Flask-Cors ollama pymongo dotenv
 ```
 
 Para o embed:
 ```bash
-pip install dotenv langchain langchain-text-splitters langchain-community chromadb unstructured
+pip install langchain langchain-text-splitters langchain-community chromadb unstructured
 ```
 
 ```bash
