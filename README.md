@@ -23,16 +23,16 @@ venv\Scripts\activate
 
 Para a query:
 ```bash
-pip install Flask Flask-Cors ollama
+pip install Flask Flask-Cors ollama pymongo dotenv
 ```
 
 Para o embed:
 ```bash
-pip install dotenv langchain langchain-text-splitters langchain-community langchain-ollama langchain-chroma chromadb unstructured pymongo
+pip install langchain langchain-text-splitters langchain-community langchain-ollama langchain-chroma chromadb unstructured 
 ```
 
 ```bash
 pip install "unstructured[all-docs]"
 ```
 
-E use o sampleenv.txt para criar seu .env com suas variáveis de ambiente.
+E use o env.txt para criar seu .env com suas variáveis de ambiente.
