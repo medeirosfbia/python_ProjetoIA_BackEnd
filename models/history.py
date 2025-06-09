@@ -4,7 +4,7 @@ from models.mongo_connection import collection
 
 def create_chat(user_id: str, title: str = None) -> str:
     """Inicia uma nova conversa para o usuário"""
-    chat_id = f'chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}'
+    chat_id = f'chat_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
 
     collection.insert_one({
         "user_id" : user_id,
