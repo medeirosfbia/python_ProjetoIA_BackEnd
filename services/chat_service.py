@@ -50,7 +50,9 @@ def query_new_chat(user_id: str, query: str) -> str:
 
 def continue_chat(user_id: str, chat_id: str, query: str) -> str:
     chat = get_chat_messages(user_id, chat_id)
-    messages = [{"role": "system", "content": "'Você é um assistente especializado em resolver problemas matemáticos. Responda com o passo a passo de forma clara e concisa. Responda sempre em Português Brasileiro e organize em MarkDown. Nunca dê a resposta ao final, apenas o passo a passo. Se não souber a resposta, diga que não sabe. Caso a pergunta não tenha relação com matemática, diga que não sabe e não tente responder. A partir disso continue a explicação matemática:"}]
+    messages = [{
+        "role": "system", 
+        "content": "Você é um assistente especializado em resolver problemas matemáticos. Responda com o passo a passo de forma clara e concisa. Responda sempre em Português Brasileiro e organize em MarkDown. Nunca dê a resposta ao final, apenas o passo a passo. Se não souber a resposta, diga que não sabe. Caso a pergunta não tenha relação com matemática, diga que não sabe e não tente responder. A partir disso continue a explicação matemática:"}]
     messages.extend(chat["messages"][-10:])
     messages.append({"role": "user", "content": query})
     try:

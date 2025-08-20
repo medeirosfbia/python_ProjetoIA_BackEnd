@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+load_dotenv()
+
 # Controllers import
 from controllers.embed_controller import embed_file
 from controllers.chat_controller import (
@@ -14,7 +16,7 @@ from controllers.chat_controller import (
     delete_chat_controller
 )
 
-load_dotenv()
+
 TEMP_FOLDER = os.getenv('TEMP_FOLDER')
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
