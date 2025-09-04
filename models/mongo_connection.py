@@ -6,7 +6,7 @@ DATABASE_NAME = os.getenv('DATABASE_NAME')
 ASSISTANT_COLLECTION = os.getenv('ASSISTANT_COLLECTION')
 
 client = MongoClient(URL_CONNECTION_MONGODB)
-db = client[DATABASE_NAME]
+db = client[DATABASE_NAME]  
 collection = db[ASSISTANT_COLLECTION]
 
 collection.create_index([
