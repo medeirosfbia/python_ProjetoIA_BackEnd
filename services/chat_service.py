@@ -10,6 +10,8 @@ from models.history import (
 )
 
 LLM_MODEL = os.getenv('LLM_MODEL')
+math_context = ""
+english_context = ""
 
 def query_old(query):
     response = ollama.chat(model='qwen2', messages=[
@@ -58,6 +60,8 @@ def continue_chat(user_id: str, chat_id: str, model:str, query: str) -> str:
     messages.extend(chat["messages"][-10:])
     messages.append({"role": "user", "content": query})
     try:
+        if model:
+            LLM_MODEL = model
         response = ollama.chat(model=LLM_MODEL, messages=messages)
         model_response = response['message']['content']
         add_messages(user_id, chat_id, query, model_response)
