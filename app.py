@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request, json
 from flask_cors import CORS
-from datetime import datetime
-
+from configs import swagger_config
+from flasgger import Swagger
 load_dotenv()
 from controllers.chat_controller import (
     new_chat_controller,
@@ -16,8 +16,12 @@ from controllers.chat_controller import (
 TEMP_FOLDER = os.getenv('TEMP_FOLDER')
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
+
 app = Flask(__name__)
 CORS(app, expose_headers=["X-Chat-ID"])
+
+swagger = Swagger(app, template=swagger_config.swagger_template, config=swagger_config.swagger_config)
+
         
 @app.route('/chats/new', methods=['POST'])
 def route_new_chat():
