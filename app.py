@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify, request, json
+from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from configs import swagger_config
 from flasgger import Swagger
