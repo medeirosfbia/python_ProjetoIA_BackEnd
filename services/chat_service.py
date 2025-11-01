@@ -10,12 +10,16 @@ from models.history import (
 )
 
 # LLM_MODEL = os.getenv('LLM_MODEL')
+
+ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+ollama_client = ollama.Client(host=ollama_host)
+
 math_context = "Você é um assistente especializado em resolver problemas matemáticos. Responda com o passo a passo de forma clara e concisa. Responda sempre em Português Brasileiro e organize em MarkDown. Nunca dê a resposta ao final, apenas o passo a passo. Se não souber a resposta, diga que não sabe. Caso a pergunta não tenha relação com matemática, diga que não sabe e não tente responder."
 english_context = "You are an assistant specialized in helping with english study. Answer with a clear and concise step-by-step explanation. Prefer to respond in english but translate if the student is facing dificulties. Never provide the final answer, only the step-by-step process. If you don't know the answer, say that you don't know. If the question is related to mathematics, say that you don't know and do not attempt to answer."
 
 def generate_streamed_response(messages, model):
     try:
-        stream = ollama.chat(model=model, messages=messages, stream=True)
+        stream = ollama_client.chat(model=model, messages=messages, stream=True)
         
         # O gerador vai 'yield' cada pedaço da resposta à medida que chega
         for chunk in stream: 
