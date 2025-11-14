@@ -14,14 +14,14 @@ class TestListChats:
         mock_list_chats.return_value = [
             {
                 "chat_id": "chat_123",
-                "user_id": "medeirosfbia",
+                "user_id": "testeAdmin",
                 "title": "Chat 1",
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat()
             }
         ]
         
-        response = client.get('/chats?user_id=medeirosfbia')
+        response = client.get('/chats?user_id=testeAdmin')
         assert response.status_code == 200
         assert isinstance(response.json, list)
         mock_list_chats.assert_called_once()
@@ -37,7 +37,7 @@ class TestGetChat:
         """Testa retorno bem-sucedido de um chat"""
         mock_get_chat.return_value = {
             "chat_id": "chat_123",
-            "user_id": "medeirosfbia",
+            "user_id": "testeAdmin",
             "title": "Chat Test",
             "messages": [
                 {"role": "user", "content": "Olá"},
@@ -47,7 +47,7 @@ class TestGetChat:
             "updated_at": datetime.now().isoformat()
         }
         
-        response = client.get('/chats/chat_123?user_id=medeirosfbia')
+        response = client.get('/chats/chat_123?user_id=testeAdmin')
         assert response.status_code == 200
         assert response.json["chat_id"] == "chat_123"
         
@@ -56,7 +56,7 @@ class TestGetChat:
         """Testa retorno 404 quando chat não existe"""
         mock_get_chat.return_value = None
         
-        response = client.get('/chats/invalid_id?user_id=medeirosfbia')
+        response = client.get('/chats/invalid_id?user_id=testeAdmin')
         assert response.status_code == 404
 
 class TestDeleteChat:
@@ -70,7 +70,7 @@ class TestDeleteChat:
         """Testa exclusão bem-sucedida"""
         mock_delete.return_value = True
         
-        response = client.delete('/chats/chat_123/delete?user_id=medeirosfbia')
+        response = client.delete('/chats/chat_123/delete?user_id=testeAdmin')
         assert response.status_code == 200
         
     @patch('app.delete_chat_controller')
@@ -78,7 +78,7 @@ class TestDeleteChat:
         """Testa erro ao deletar"""
         mock_delete.return_value = False
         
-        response = client.delete('/chats/chat_123/delete?user_id=medeirosfbia')
+        response = client.delete('/chats/chat_123/delete?user_id=testeAdmin')
         assert response.status_code == 500
 
 class TestNewChat:
@@ -91,7 +91,7 @@ class TestNewChat:
         }
         
         response = client.post(
-            '/chats/new?user_id=medeirosfbia',
+            '/chats/new?user_id=testeAdmin',
             json={'model': 'math', 'message': '2 + 2 = ?'}
         )
         assert response.status_code == 200
@@ -114,7 +114,7 @@ class TestContinueChat:
         }
         
         response = client.post(
-            '/chats/chat_123/add?user_id=medeirosfbia',
+            '/chats/chat_123/add?user_id=testeAdmin',
             json={'model': 'math', 'message': 'E 3 + 3?'}
         )
         assert response.status_code == 200
