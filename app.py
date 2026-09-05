@@ -4,6 +4,7 @@ from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from configs import swagger_config
 from flasgger import Swagger
+from services.auth_service import authenticate_request, authenticated_user_id
 load_dotenv()
 from controllers.chat_controller import (
     new_chat_controller,
@@ -18,16 +19,30 @@ os.makedirs(TEMP_FOLDER, exist_ok=True)
 
 
 app = Flask(__name__)
-CORS(app, expose_headers=["X-Chat-ID"])
+CORS(
+    app,
+    origins=os.getenv("CORS_ORIGINS", "http://localhost:5173").split(","),
+    allow_headers=["Authorization", "Content-Type"],
+    methods=["GET", "POST", "DELETE", "OPTIONS"],
+    expose_headers=["X-Chat-ID"],
+)
+
+
+@app.before_request
+def require_authentication():
+    return authenticate_request()
+
+
+@app.errorhandler(PermissionError)
+def handle_permission_error(error):
+    return jsonify({"error": str(error)}), 403
 
 swagger = Swagger(app, template=swagger_config.swagger_template, config=swagger_config.swagger_config)
 
         
 @app.route('/chats/new', methods=['POST'])
 def route_new_chat():
-    user_id = request.args.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    user_id = authenticated_user_id()
     data = request.get_json()
     model = data.get('model')
     response = new_chat_controller(user_id, model, data.get('message'))
@@ -43,9 +58,7 @@ def route_new_chat():
         
 @app.route('/chats/<chat_id>/add', methods=['POST'])
 def route_resume_chat(chat_id):
-    user_id = request.args.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    user_id = authenticated_user_id()
     data = request.get_json()
     model = data.get('model')
     message = data.get('message')
@@ -61,16 +74,12 @@ def route_resume_chat(chat_id):
         
 @app.route('/chats', methods=['GET'])
 def route_list_chats():
-    user_id = request.args.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    user_id = authenticated_user_id()
     return jsonify(list_chats_controller(user_id))
 
 @app.route('/chats/<chat_id>', methods=['GET'])
 def get_chat(chat_id):
-    user_id = request.args.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    user_id = authenticated_user_id()
     chat = get_chat_controller(user_id, chat_id)
     if not chat:
         return jsonify({"error": "Conversa não encontrada"}), 404
@@ -78,9 +87,7 @@ def get_chat(chat_id):
 
 @app.route('/chats/<chat_id>/delete', methods=['DELETE'])
 def delete_chat(chat_id):
-    user_id = request.args.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Parâmetro 'user_id' é obrigatório"}), 400
+    user_id = authenticated_user_id()
     result = delete_chat_controller(user_id, chat_id)
     if result:
         return jsonify({"success": "Conversa deletada com sucesso"}), 200

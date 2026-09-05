@@ -25,11 +25,11 @@ swagger_template = {
         },
     ],
     "securityDefinitions": {
-        "UserAuth": {
+        "BearerAuth": {
             "type": "apiKey",
-            "name": "user_id",
-            "in": "query",
-            "description": "ID único do usuário para identificação"
+            "name": "Authorization",
+            "in": "header",
+            "description": "Informe o token no formato: Bearer <JWT>"
         }
     },
     "definitions": {
@@ -143,14 +143,14 @@ swagger_template = {
                 "tags": ["chats"],
                 "summary": "Criar um novo chat",
                 "description": "Inicia uma nova conversa com o assistente de IA. Retorna resposta em streaming.",
-                "security": [{"UserAuth": []}],
+                "security": [{"BearerAuth": []}],
                 "parameters": [
                     {
                         "name": "user_id",
                         "in": "query",
                         "type": "string",
-                        "required": True,
-                        "description": "ID único do usuário"
+                        "required": False,
+                        "description": "Parâmetro legado opcional; deve corresponder ao sub do JWT"
                     },
                     {
                         "in": "body",
@@ -186,14 +186,14 @@ swagger_template = {
                 "tags": ["chats"],
                 "summary": "Adicionar mensagem a um chat existente",
                 "description": "Continua uma conversa existente. Retorna resposta em streaming.",
-                "security": [{"UserAuth": []}],
+                "security": [{"BearerAuth": []}],
                 "parameters": [
                     {
                         "name": "user_id", 
                         "in": "query", 
                         "type": "string", 
-                        "required": True,
-                        "description": "ID único do usuário"
+                        "required": False,
+                        "description": "Parâmetro legado opcional; deve corresponder ao sub do JWT"
                     },
                     {
                         "name": "chat_id", 
@@ -240,14 +240,14 @@ swagger_template = {
                 "tags": ["chats"],
                 "summary": "Listar chats de um usuário",
                 "description": "Retorna a lista de todos os chats do usuário ordenados por data de atualização.",
-                "security": [{"UserAuth": []}],
+                "security": [{"BearerAuth": []}],
                 "parameters": [
                     {
                         "name": "user_id", 
                         "in": "query", 
                         "type": "string", 
-                        "required": True,
-                        "description": "ID único do usuário"
+                        "required": False,
+                        "description": "Parâmetro legado opcional; deve corresponder ao sub do JWT"
                     }
                 ],
                 "responses": {
@@ -268,7 +268,7 @@ swagger_template = {
                         }
                     },
                     "400": {
-                        "description": "Parâmetro user_id obrigatório",
+                        "description": "Parâmetro user_id divergente do usuário autenticado",
                         "schema": {"$ref": "#/definitions/ErrorResponse"}
                     }
                 }
@@ -279,14 +279,14 @@ swagger_template = {
                 "tags": ["chats"],
                 "summary": "Obter detalhes de um chat específico",
                 "description": "Retorna o histórico completo de mensagens de um chat.",
-                "security": [{"UserAuth": []}],
+                "security": [{"BearerAuth": []}],
                 "parameters": [
                     {
                         "name": "user_id", 
                         "in": "query", 
                         "type": "string", 
-                        "required": True,
-                        "description": "ID único do usuário"
+                        "required": False,
+                        "description": "Parâmetro legado opcional; deve corresponder ao sub do JWT"
                     },
                     {
                         "name": "chat_id", 
@@ -302,7 +302,7 @@ swagger_template = {
                         "schema": {"$ref": "#/definitions/Chat"}
                     },
                     "400": {
-                        "description": "Parâmetro user_id obrigatório",
+                        "description": "Parâmetro user_id divergente do usuário autenticado",
                         "schema": {"$ref": "#/definitions/ErrorResponse"}
                     },
                     "404": {
@@ -317,14 +317,14 @@ swagger_template = {
                 "tags": ["chats"],
                 "summary": "Deletar um chat",
                 "description": "Remove permanentemente um chat e todo seu histórico de mensagens.",
-                "security": [{"UserAuth": []}],
+                "security": [{"BearerAuth": []}],
                 "parameters": [
                     {
                         "name": "user_id", 
                         "in": "query", 
                         "type": "string", 
-                        "required": True,
-                        "description": "ID único do usuário"
+                        "required": False,
+                        "description": "Parâmetro legado opcional; deve corresponder ao sub do JWT"
                     },
                     {
                         "name": "chat_id", 
@@ -340,7 +340,7 @@ swagger_template = {
                         "schema": {"$ref": "#/definitions/SuccessResponse"}
                     },
                     "400": {
-                        "description": "Parâmetro user_id obrigatório",
+                        "description": "Parâmetro user_id divergente do usuário autenticado",
                         "schema": {"$ref": "#/definitions/ErrorResponse"}
                     },
                     "404": {

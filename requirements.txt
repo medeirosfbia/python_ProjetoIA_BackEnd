@@ -141,6 +141,7 @@ python-oxmsg==0.0.2
 python-pptx==1.0.2
 pytz==2025.2
 PyYAML==6.0.2
+PyJWT==2.10.1
 RapidFuzz==3.12.2
 referencing==0.36.2
 regex==2024.11.6

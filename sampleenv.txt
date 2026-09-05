@@ -1,4 +1,6 @@
 TEMP_FOLDER = './_temp'
+JWT_SECRET_B64=coloque_a_mesma_chave_base64_usada_pelo_spring
+CORS_ORIGINS=http://localhost:5173
 CHROMA_PATH = 'chroma'
 COLLECTION_NAME = 'local-test'
 LLM_MODEL = 'qwen2-math'
