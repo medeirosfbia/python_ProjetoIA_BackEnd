@@ -70,6 +70,10 @@ Swagger UI padrão: `http://127.0.0.1:5000/swagger/`
 - GET /chats/{chat_id}?user_id={user_id} — retorna histórico.
 - DELETE /chats/{chat_id}/delete?user_id={user_id} — remove chat.
 
+Para habilitar a mensageria do histórico, configure `AZURE_STORAGE_CONNECTION_STRING`
+no `.env`. Opcionalmente, altere o nome da fila com `AZURE_QUEUE_NAME`. Cada mensagem
+salva no histórico é publicada automaticamente na fila para consumo posterior.
+
 Exemplo (curl, streaming):
 ```bash
 curl -N -X POST "http://127.0.0.1:5000/chats/new?user_id=test" \
@@ -88,12 +92,11 @@ Acesse https://4.206.202.49.nip.io/swagger para visualizar e testar os endpoints
 - Resposta completa é concatenada e salva no histórico após fim do stream.
 
 ## Persistência: MongoDB
-- Uso de MongoDB via PyMongo quando `URL_CONNECTION_MONGODB` disponível.
-- Timestamps gravados em ISO strings para compatibilidade JSON/Swagger.
 
 
 ## Deployment (Azure)
-- A aplicação está deployada em Azure e disponível em: https://4.206.202.49.nip.io
+ do chat é publicada automaticamente na fila; o consumidor será responsável por
+ persistir no MongoDB posteriormente.
 - Deploy configurado com os passos do script `deploy_aprovia.sh`:
   - Instalação de dependências do sistema, Ollama e modelos (qwen2-math, llama3)
   - Instalação e configuração do MongoDB 

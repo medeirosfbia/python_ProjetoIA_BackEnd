@@ -127,6 +127,5 @@ class ChatEndpointsTestCase(unittest.TestCase):
         )
         query_new_chat.assert_not_called()
 
-
 if __name__ == "__main__":
     unittest.main()

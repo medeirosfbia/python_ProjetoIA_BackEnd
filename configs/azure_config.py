@@ -1,25 +1,28 @@
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 from azure.storage.queue import QueueClient
+from azure.core.exceptions import ResourceExistsError
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-QUEUE_NAME = "aprova-chat-history"
+QUEUE_NAME = os.getenv("QUEUE_NAME")
 
-if not AZURE_STORAGE_CONNECTION_STRING:
-    raise ValueError("A variável de ambiente AZURE_STORAGE_CONNECTION_STRING não foi configurada.")
+queue_client = None
 
-# Inicializa o cliente da fila do Azure
-queue_client = QueueClient.from_connection_string(
-    conn_str=AZURE_STORAGE_CONNECTION_STRING, 
-    queue_name=QUEUE_NAME
-)
+if AZURE_STORAGE_CONNECTION_STRING:
+    queue_client = QueueClient.from_connection_string(
+        conn_str=AZURE_STORAGE_CONNECTION_STRING,
+        queue_name=QUEUE_NAME,
+    )
 
-# Garante que a fila existe no Azure Storage
-try:
-    queue_client.create_queue()
-    print(f"Fila '{QUEUE_NAME}' criada com sucesso no Azure Queue Storage.")
-except Exception:
-    # Caso a fila já exista, o Azure lança um erro que podemos ignorar
-    print(f"Fila '{QUEUE_NAME}' pronta para uso.")
+    try:
+        queue_client.create_queue()
+    except ResourceExistsError:
+        pass
+
+    print(f"Azure Queue '{QUEUE_NAME}' pronta para publicar mensagens.")
+else:
+    print("Azure Queue desabilitada: AZURE_STORAGE_CONNECTION_STRING não configurada.")

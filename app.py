@@ -5,7 +5,6 @@ from flask_cors import CORS
 from configs import swagger_config
 from flasgger import Swagger
 from services.auth_service import authenticate_request
-
 load_dotenv()
 from controllers.chat_controller import (
     new_chat_controller,
