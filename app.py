@@ -1,17 +1,18 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 from configs import swagger_config
 from flasgger import Swagger
-from services.auth_service import authenticate_request, authenticated_user_id
+from services.auth_service import authenticate_request
+
 load_dotenv()
 from controllers.chat_controller import (
     new_chat_controller,
     continue_chat_controller,
     list_chats_controller,
     get_chat_controller,
-    delete_chat_controller
+    delete_chat_controller,
 )
 
 TEMP_FOLDER = os.getenv('TEMP_FOLDER')
@@ -42,57 +43,24 @@ swagger = Swagger(app, template=swagger_config.swagger_template, config=swagger_
         
 @app.route('/chats/new', methods=['POST'])
 def route_new_chat():
-    user_id = authenticated_user_id()
-    data = request.get_json()
-    model = data.get('model')
-    response = new_chat_controller(user_id, model, data.get('message'))
-    if response:
-        return Response(
-            response['resposta_stream'],
-            mimetype='text/plain',
-            headers={'X-Chat-ID': response['chat_id']}
-        )
-    else:
-        return jsonify({"error": "Something went wrong"}), 400
+    return new_chat_controller()
 
         
 @app.route('/chats/<chat_id>/add', methods=['POST'])
 def route_resume_chat(chat_id):
-    user_id = authenticated_user_id()
-    data = request.get_json()
-    model = data.get('model')
-    message = data.get('message')
-    response = continue_chat_controller(user_id, chat_id, model, message)
-    if response:
-        return Response(
-            response['resposta_stream'],
-            mimetype='text/plain',
-            headers={'X-Chat-ID': response['chat_id']}
-        )
-    else:
-        return jsonify({"error": "Something went wrong"}), 400
+    return continue_chat_controller(chat_id)
         
 @app.route('/chats', methods=['GET'])
 def route_list_chats():
-    user_id = authenticated_user_id()
-    return jsonify(list_chats_controller(user_id))
+    return list_chats_controller()
 
 @app.route('/chats/<chat_id>', methods=['GET'])
 def get_chat(chat_id):
-    user_id = authenticated_user_id()
-    chat = get_chat_controller(user_id, chat_id)
-    if not chat:
-        return jsonify({"error": "Conversa não encontrada"}), 404
-    return jsonify(chat), 200
+    return get_chat_controller(chat_id)
 
 @app.route('/chats/<chat_id>/delete', methods=['DELETE'])
 def delete_chat(chat_id):
-    user_id = authenticated_user_id()
-    result = delete_chat_controller(user_id, chat_id)
-    if result:
-        return jsonify({"success": "Conversa deletada com sucesso"}), 200
-    else:
-        return jsonify({"error": "Erro ao deletar conversa"}), 500
+    return delete_chat_controller(chat_id)
 
 if __name__ == "__main__":
     app.run()
