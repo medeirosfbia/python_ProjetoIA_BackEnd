@@ -1,10 +1,31 @@
-TEMP_FOLDER = './_temp'
-JWT_SECRET_B64=coloque_a_mesma_chave_base64_usada_pelo_spring
-CORS_ORIGINS=http://localhost:5173
-CHROMA_PATH = 'chroma'
-COLLECTION_NAME = 'local-test'
-LLM_MODEL = 'qwen2-math'
-TEXT_EMBEDDING_MODEL = 'nomic-embed-text'
-URL_CONNECTION_MONGODB = 'mongodb+srv://<username>:<password>@cluster0.exemplo.mongodb.net/<database>?retryWrites=true&w=majority'
-DATABASE_NAME = 'aprovia_db'
-ASSISTANT_COLLECTION = 'math_assistant'
+# Copie este arquivo para .env e substitua os valores de exemplo.
+# Nunca versione o arquivo .env nem coloque credenciais reais neste arquivo.
+
+# Diretório usado para arquivos temporários enviados à API.
+TEMP_FOLDER=./_temp
+
+# Configuração do ChromaDB.
+CHROMA_PATH=chroma
+COLLECTION_NAME=local-test
+
+# Modelo usado para gerar embeddings.
+TEXT_EMBEDDING_MODEL=nomic-embed-text
+
+# URI do MongoDB. Use a URI real apenas no arquivo .env local.
+# Exemplo Atlas:
+URL_CONNECTION_MONGODB=mongodb+srv://<usuario>:<senha>@<cluster>/?appName=AprovIA
+
+DATABASE_NAME=aprovia_db
+ASSISTANT_COLLECTION=assistant
+
+# Deve ser a mesma chave Base64 configurada em manager_back/.env.
+# Gere uma chave nova para cada ambiente; não reutilize a chave de produção.
+JWT_SECRET_B64=<chave-base64-compartilhada-com-o-spring>
+
+# Origens permitidas pelo backend.
+CORS_ORIGINS=http://localhost:8081
+
+# Configuração usada para publicar mensagens de histórico na fila.
+# Nunca coloque AccountKey real neste arquivo.
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=<nome-da-conta>;AccountKey=<chave-da-conta>;EndpointSuffix=core.windows.net
+QUEUE_NAME=aprovia-chat-history
