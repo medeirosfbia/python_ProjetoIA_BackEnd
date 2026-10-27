@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import List, Dict
 from models.mongo_connection import collection
+from messaging.queue_history_producer import publicar_mensagem_historico
 
 def create_chat(user_id: str, title: str = None) -> str:
     """Inicia uma nova conversa para o usuário"""
@@ -19,14 +19,8 @@ def create_chat(user_id: str, title: str = None) -> str:
 
 
 def update_chat(user_id: str, chat_id: str, role: str, content: str):
-    """Adiciona uma mensagem a uma conversa específica"""
-    collection.update_one(
-        {"user_id": user_id, "chat_id": chat_id},
-        {
-            "$push": {"messages": {"role": role, "content": content, "timestamp": datetime.now()}},
-            
-            "$set" : {"updated_at": datetime.now()}
-        })
+    """Publica uma mensagem para o consumidor persistir no MongoDB."""
+    return publicar_mensagem_historico(user_id, chat_id, role, content)
 
 def list_last_chats(user_id: str, limit: int = 10) -> list:
     """Lista todas as conversas do usuário (mais recentes primeiro)"""

@@ -32,7 +32,7 @@ def query_new_chat(user_id: str, model: str, query: str):
     #     LLM_MODEL = model       
     if model == "qwen2-math":
         context = math_context
-    elif model == "llama3":
+    elif model == "llama3.2:3b":
         context = english_context
 
     messages = [
