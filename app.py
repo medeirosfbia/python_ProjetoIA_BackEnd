@@ -13,6 +13,17 @@ from controllers.chat_controller import (
     get_chat_controller,
     delete_chat_controller,
 )
+from controllers.exam_controller import (
+    list_exams_controller,
+    get_exam_controller,
+    create_exam_controller,
+    update_exam_controller,
+    delete_exam_controller,
+    submit_answers_controller,
+    list_my_exam_answers_controller,
+    list_all_exam_answers_controller,
+    list_my_answers_history_controller,
+)
 
 TEMP_FOLDER = os.getenv('TEMP_FOLDER')
 os.makedirs(TEMP_FOLDER, exist_ok=True)
@@ -23,7 +34,7 @@ CORS(
     app,
     origins=os.getenv("CORS_ORIGINS", "http://localhost:5173").split(","),
     allow_headers=["Authorization", "Content-Type"],
-    methods=["GET", "POST", "DELETE", "OPTIONS"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     expose_headers=["X-Chat-ID"],
 )
 
@@ -60,6 +71,44 @@ def get_chat(chat_id):
 @app.route('/chats/<chat_id>/delete', methods=['DELETE'])
 def delete_chat(chat_id):
     return delete_chat_controller(chat_id)
+
+
+@app.route('/exams', methods=['GET'])
+def route_list_exams():
+    return list_exams_controller()
+
+@app.route('/exams', methods=['POST'])
+def route_create_exam():
+    return create_exam_controller()
+
+# Rota estática; o Flask a prioriza sobre /exams/<exam_id>
+@app.route('/exams/answers', methods=['GET'])
+def route_my_answers_history():
+    return list_my_answers_history_controller()
+
+@app.route('/exams/<exam_id>', methods=['GET'])
+def route_get_exam(exam_id):
+    return get_exam_controller(exam_id)
+
+@app.route('/exams/<exam_id>', methods=['PUT'])
+def route_update_exam(exam_id):
+    return update_exam_controller(exam_id)
+
+@app.route('/exams/<exam_id>', methods=['DELETE'])
+def route_delete_exam(exam_id):
+    return delete_exam_controller(exam_id)
+
+@app.route('/exams/<exam_id>/answers', methods=['POST'])
+def route_submit_answers(exam_id):
+    return submit_answers_controller(exam_id)
+
+@app.route('/exams/<exam_id>/answers', methods=['GET'])
+def route_my_exam_answers(exam_id):
+    return list_my_exam_answers_controller(exam_id)
+
+@app.route('/exams/<exam_id>/answers/all', methods=['GET'])
+def route_all_exam_answers(exam_id):
+    return list_all_exam_answers_controller(exam_id)
 
 if __name__ == "__main__":
     app.run()

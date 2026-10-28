@@ -23,6 +23,10 @@ swagger_template = {
             "name": "chats",
             "description": "Operações relacionadas aos chats"
         },
+        {
+            "name": "exams",
+            "description": "Provas/testes (criar, editar e deletar: somente admins) e respostas dos usuários"
+        },
     ],
     "securityDefinitions": {
         "BearerAuth": {
@@ -135,6 +139,144 @@ swagger_template = {
                 }
             },
             "required": ["success"]
+        },
+        "ValidationErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string", "example": "Dados inválidos"},
+                "detalhes": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "example": ["titulo é obrigatório"]
+                }
+            }
+        },
+        "ExamQuestion": {
+            "type": "object",
+            "description": (
+                "Questão polimórfica. multipla_escolha usa opcoes/resposta_correta_id/explicacao_gabarito; "
+                "dissertativa usa chave_correcao/limite_caracteres; desafio_codigo usa "
+                "linguagem_permitida/codigo_inicial/casos_de_teste. Os campos de gabarito "
+                "não são retornados para usuários comuns."
+            ),
+            "properties": {
+                "id_questao": {"type": "string", "example": "q1"},
+                "ordem": {"type": "integer", "example": 1},
+                "tipo": {"type": "string", "enum": ["multipla_escolha", "dissertativa", "desafio_codigo"]},
+                "peso": {"type": "number", "example": 2.0},
+                "enunciado": {"type": "string", "example": "Qual é o valor de x na equação 2x + 6 = 14?"},
+                "opcoes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {"id": {"type": "string"}, "texto": {"type": "string"}}
+                    },
+                    "example": [{"id": "op_a", "texto": "x = 3"}, {"id": "op_b", "texto": "x = 4"}]
+                },
+                "resposta_correta_id": {"type": "string", "example": "op_b"},
+                "explicacao_gabarito": {"type": "string"},
+                "chave_correcao": {"type": "string"},
+                "limite_caracteres": {"type": "integer"}
+            },
+            "required": ["id_questao", "tipo", "peso", "enunciado"]
+        },
+        "ExamRequest": {
+            "type": "object",
+            "properties": {
+                "titulo": {"type": "string", "example": "Simulado de Matemática: Equações e Porcentagem"},
+                "status": {
+                    "type": "string",
+                    "enum": ["RASCUNHO", "APROVADO", "ARQUIVADO"],
+                    "default": "RASCUNHO",
+                    "description": "Somente provas APROVADO aparecem para usuários comuns"
+                },
+                "contexto": {
+                    "type": "object",
+                    "properties": {
+                        "assunto_materia": {"type": "string", "example": "Matemática"},
+                        "gerado_com_ia": {"type": "object"}
+                    },
+                    "required": ["assunto_materia"]
+                },
+                "configuracoes_teste": {
+                    "type": "object",
+                    "properties": {
+                        "tempo_limite_minutos": {"type": "integer", "example": 30},
+                        "nota_maxima": {"type": "number", "default": 10.0},
+                        "permite_refazer": {"type": "boolean", "default": True}
+                    }
+                },
+                "questoes": {"type": "array", "items": {"$ref": "#/definitions/ExamQuestion"}}
+            },
+            "required": ["titulo", "contexto", "questoes"]
+        },
+        "Exam": {
+            "type": "object",
+            "description": "Prova gravada. contexto também recebe criado_por, data_criacao, atualizado_por e data_atualizacao.",
+            "properties": {
+                "_id": {"type": "string", "example": "prova_exemplo_matematica_001"},
+                "titulo": {"type": "string"},
+                "status": {"type": "string"},
+                "contexto": {"type": "object"},
+                "configuracoes_teste": {"type": "object"},
+                "total_questoes": {"type": "integer"},
+                "questoes": {"type": "array", "items": {"$ref": "#/definitions/ExamQuestion"}}
+            }
+        },
+        "SubmitAnswersRequest": {
+            "type": "object",
+            "properties": {
+                "respostas": {
+                    "type": "array",
+                    "description": "Questões não enviadas contam como em branco (0 pontos)",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id_questao": {"type": "string", "example": "q1"},
+                            "resposta": {
+                                "type": "string",
+                                "example": "op_b",
+                                "description": "Id da opção (múltipla escolha) ou texto/código"
+                            }
+                        },
+                        "required": ["id_questao"]
+                    }
+                },
+                "tempo_gasto_segundos": {"type": "integer", "example": 420}
+            },
+            "required": ["respostas"]
+        },
+        "ExamAnswer": {
+            "type": "object",
+            "description": "Tentativa corrigida, guardada para comparação de desempenho",
+            "properties": {
+                "_id": {"type": "string", "example": "resp_1a2b3c4d5e6f"},
+                "prova_id": {"type": "string"},
+                "usuario_id": {"type": "string"},
+                "tentativa": {"type": "integer", "example": 1},
+                "titulo_prova": {"type": "string"},
+                "assunto_materia": {"type": "string"},
+                "enviado_em": {"type": "string", "format": "date-time"},
+                "tempo_gasto_segundos": {"type": "integer"},
+                "respostas": {
+                    "type": "array",
+                    "description": "Por questão: resposta, correta, pontos_obtidos e status_correcao (corrigida, pendente ou em_branco)",
+                    "items": {"type": "object"}
+                },
+                "resultado": {
+                    "type": "object",
+                    "properties": {
+                        "acertos": {"type": "integer"},
+                        "total_questoes": {"type": "integer"},
+                        "pontos_obtidos": {"type": "number"},
+                        "pontos_possiveis": {"type": "number"},
+                        "nota_obtida": {"type": "number"},
+                        "nota_maxima": {"type": "number"},
+                        "questoes_pendentes_correcao": {"type": "integer"},
+                        "correcao_concluida": {"type": "boolean"}
+                    }
+                }
+            }
         }
     },
     "paths": {
@@ -351,6 +493,140 @@ swagger_template = {
                         "description": "Erro interno do servidor",
                         "schema": {"$ref": "#/definitions/ErrorResponse"}
                     }
+                }
+            }
+        },
+        "/exams": {
+            "get": {
+                "tags": ["exams"],
+                "summary": "Listar provas",
+                "description": "Resumo das provas, sem as questões. Usuários comuns veem apenas provas APROVADO.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "assunto", "in": "query", "type": "string", "required": False,
+                     "description": "Filtra por contexto.assunto_materia"},
+                    {"name": "status", "in": "query", "type": "string", "required": False,
+                     "enum": ["RASCUNHO", "APROVADO", "ARQUIVADO"],
+                     "description": "Filtro de status (somente admins)"}
+                ],
+                "responses": {
+                    "200": {"description": "Lista de provas", "schema": {"type": "array", "items": {"$ref": "#/definitions/Exam"}}}
+                }
+            },
+            "post": {
+                "tags": ["exams"],
+                "summary": "Criar prova (admin)",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/ExamRequest"}}
+                ],
+                "responses": {
+                    "201": {"description": "Prova criada", "schema": {"$ref": "#/definitions/Exam"}},
+                    "400": {"description": "Dados inválidos", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/exams/answers": {
+            "get": {
+                "tags": ["exams"],
+                "summary": "Histórico de desempenho do usuário",
+                "description": "Resultado de todas as tentativas do usuário autenticado, sem o detalhe por questão.",
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {"description": "Tentativas (mais recentes primeiro)", "schema": {"type": "array", "items": {"$ref": "#/definitions/ExamAnswer"}}}
+                }
+            }
+        },
+        "/exams/{exam_id}": {
+            "get": {
+                "tags": ["exams"],
+                "summary": "Obter prova",
+                "description": "Admins recebem a prova completa; usuários comuns recebem a prova sem o gabarito.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "exam_id", "in": "path", "type": "string", "required": True}
+                ],
+                "responses": {
+                    "200": {"description": "Prova", "schema": {"$ref": "#/definitions/Exam"}},
+                    "404": {"description": "Prova não encontrada", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            },
+            "put": {
+                "tags": ["exams"],
+                "summary": "Editar prova (admin)",
+                "description": "Substitui a prova inteira. Tentativas já enviadas não mudam, pois guardam uma cópia do gabarito.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "exam_id", "in": "path", "type": "string", "required": True},
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/ExamRequest"}}
+                ],
+                "responses": {
+                    "200": {"description": "Prova atualizada", "schema": {"$ref": "#/definitions/Exam"}},
+                    "400": {"description": "Dados inválidos", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "404": {"description": "Prova não encontrada", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            },
+            "delete": {
+                "tags": ["exams"],
+                "summary": "Deletar prova (admin)",
+                "description": "Remove a prova. As respostas já enviadas são mantidas para o histórico de desempenho.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "exam_id", "in": "path", "type": "string", "required": True}
+                ],
+                "responses": {
+                    "200": {"description": "Prova deletada", "schema": {"$ref": "#/definitions/SuccessResponse"}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "404": {"description": "Prova não encontrada", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/exams/{exam_id}/answers": {
+            "post": {
+                "tags": ["exams"],
+                "summary": "Enviar respostas",
+                "description": (
+                    "Corrige automaticamente as questões de múltipla escolha e grava a tentativa. "
+                    "Dissertativas e desafios de código ficam com status_correcao = pendente."
+                ),
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "exam_id", "in": "path", "type": "string", "required": True},
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/SubmitAnswersRequest"}}
+                ],
+                "responses": {
+                    "201": {"description": "Tentativa corrigida e gravada", "schema": {"$ref": "#/definitions/ExamAnswer"}},
+                    "400": {"description": "Respostas inválidas", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}},
+                    "404": {"description": "Prova não encontrada", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "409": {"description": "A prova não permite refazer", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            },
+            "get": {
+                "tags": ["exams"],
+                "summary": "Minhas tentativas nesta prova",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "exam_id", "in": "path", "type": "string", "required": True}
+                ],
+                "responses": {
+                    "200": {"description": "Tentativas com detalhe por questão", "schema": {"type": "array", "items": {"$ref": "#/definitions/ExamAnswer"}}}
+                }
+            }
+        },
+        "/exams/{exam_id}/answers/all": {
+            "get": {
+                "tags": ["exams"],
+                "summary": "Todas as tentativas da prova (admin)",
+                "description": "Resultado de todos os usuários, para comparação de desempenho.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "exam_id", "in": "path", "type": "string", "required": True}
+                ],
+                "responses": {
+                    "200": {"description": "Tentativas", "schema": {"type": "array", "items": {"$ref": "#/definitions/ExamAnswer"}}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}}
                 }
             }
         }

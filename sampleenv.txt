@@ -18,9 +18,17 @@ URL_CONNECTION_MONGODB=mongodb+srv://<usuario>:<senha>@<cluster>/?appName=AprovI
 DATABASE_NAME=aprovia_db
 ASSISTANT_COLLECTION=assistant
 
+# Coleções de provas e de respostas dos usuários (opcionais; estes são os padrões).
+EXAMS_COLLECTION=exams
+EXAM_ANSWERS_COLLECTION=exam_answers
+
 # Deve ser a mesma chave Base64 configurada em manager_back/.env.
 # Gere uma chave nova para cada ambiente; não reutilize a chave de produção.
 JWT_SECRET_B64=<chave-base64-compartilhada-com-o-spring>
+
+# Usernames (sub do JWT) com permissão de admin, separados por vírgula.
+# Também é admin quem tiver o claim role/roles com ADMIN no token.
+ADMIN_USERS=<username-admin>
 
 # Origens permitidas pelo backend.
 CORS_ORIGINS=http://localhost:8081

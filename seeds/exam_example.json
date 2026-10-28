@@ -1,0 +1,86 @@
+{
+  "titulo": "Simulado de Matemática: Equações e Porcentagem",
+  "status": "APROVADO",
+  "contexto": {
+    "assunto_materia": "Matemática",
+    "gerado_com_ia": {
+      "utilizou_ia": false
+    }
+  },
+  "configuracoes_teste": {
+    "tempo_limite_minutos": 30,
+    "nota_maxima": 10.0,
+    "permite_refazer": true
+  },
+  "questoes": [
+    {
+      "id_questao": "q1",
+      "ordem": 1,
+      "tipo": "multipla_escolha",
+      "peso": 2.0,
+      "enunciado": "Qual é o valor de x na equação 2x + 6 = 14?",
+      "opcoes": [
+        { "id": "op_a", "texto": "x = 3" },
+        { "id": "op_b", "texto": "x = 4" },
+        { "id": "op_c", "texto": "x = 5" },
+        { "id": "op_d", "texto": "x = 10" }
+      ],
+      "resposta_correta_id": "op_b",
+      "explicacao_gabarito": "Subtraindo 6 dos dois lados: 2x = 8. Dividindo por 2: x = 4."
+    },
+    {
+      "id_questao": "q2",
+      "ordem": 2,
+      "tipo": "multipla_escolha",
+      "peso": 2.0,
+      "enunciado": "Quais são as raízes da equação x² - 5x + 6 = 0?",
+      "opcoes": [
+        { "id": "op_a", "texto": "1 e 6" },
+        { "id": "op_b", "texto": "-2 e -3" },
+        { "id": "op_c", "texto": "2 e 3" },
+        { "id": "op_d", "texto": "A equação não tem raízes reais" }
+      ],
+      "resposta_correta_id": "op_c",
+      "explicacao_gabarito": "Δ = 25 - 24 = 1. x = (5 ± 1) / 2, logo x = 3 ou x = 2. Confira: 2 + 3 = 5 e 2 · 3 = 6."
+    },
+    {
+      "id_questao": "q3",
+      "ordem": 3,
+      "tipo": "multipla_escolha",
+      "peso": 2.0,
+      "enunciado": "Quanto é 15% de 240?",
+      "opcoes": [
+        { "id": "op_a", "texto": "24" },
+        { "id": "op_b", "texto": "30" },
+        { "id": "op_c", "texto": "36" },
+        { "id": "op_d", "texto": "40" }
+      ],
+      "resposta_correta_id": "op_c",
+      "explicacao_gabarito": "15% = 0,15. 0,15 · 240 = 36 (10% de 240 é 24 e 5% é 12)."
+    },
+    {
+      "id_questao": "q4",
+      "ordem": 4,
+      "tipo": "multipla_escolha",
+      "peso": 2.0,
+      "enunciado": "Um produto custa R$ 80,00 e está com 25% de desconto. Qual é o preço final?",
+      "opcoes": [
+        { "id": "op_a", "texto": "R$ 55,00" },
+        { "id": "op_b", "texto": "R$ 60,00" },
+        { "id": "op_c", "texto": "R$ 64,00" },
+        { "id": "op_d", "texto": "R$ 75,00" }
+      ],
+      "resposta_correta_id": "op_b",
+      "explicacao_gabarito": "25% de 80 é 20. 80 - 20 = 60. Ou direto: 80 · 0,75 = 60."
+    },
+    {
+      "id_questao": "q5",
+      "ordem": 5,
+      "tipo": "dissertativa",
+      "peso": 2.0,
+      "enunciado": "Resolva a equação x² - 4x - 5 = 0 usando a fórmula de Bhaskara e explique cada passo.",
+      "chave_correcao": "O aluno deve identificar a = 1, b = -4, c = -5; calcular Δ = 16 + 20 = 36; aplicar x = (4 ± 6) / 2 e chegar a x = 5 e x = -1.",
+      "limite_caracteres": 1000
+    }
+  ]
+}

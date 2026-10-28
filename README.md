@@ -70,6 +70,27 @@ Swagger UI padrão: `http://127.0.0.1:5000/swagger/`
 - GET /chats/{chat_id}?user_id={user_id} — retorna histórico.
 - DELETE /chats/{chat_id}/delete?user_id={user_id} — remove chat.
 
+### Provas
+Criar, editar e deletar provas é permitido só para admins: quem tem o claim `role`/`roles`
+com `ADMIN` no JWT ou cujo username está em `ADMIN_USERS` no `.env`. Usuários comuns
+veem só provas com status `APROVADO` e sem o gabarito.
+- GET /exams?assunto=... — lista provas (resumo, sem questões).
+- GET /exams/{exam_id} — retorna a prova.
+- POST /exams — cria prova (admin).
+- PUT /exams/{exam_id} — substitui a prova (admin).
+- DELETE /exams/{exam_id} — remove a prova (admin); as respostas já enviadas são mantidas.
+- POST /exams/{exam_id}/answers — envia respostas; múltipla escolha é corrigida na hora,
+  dissertativas e desafios de código ficam pendentes. Cada envio vira uma tentativa na
+  coleção `exam_answers`.
+- GET /exams/{exam_id}/answers — tentativas do usuário nesta prova.
+- GET /exams/answers — histórico de desempenho do usuário em todas as provas.
+- GET /exams/{exam_id}/answers/all — tentativas de todos os usuários (admin).
+
+Para gravar a prova de exemplo (`seeds/exam_example.json`) no MongoDB do `.env`:
+```bash
+python -m seeds.seed_exam_example
+```
+
 Para habilitar a mensageria do histórico, configure `AZURE_STORAGE_CONNECTION_STRING`
 no `.env`. Opcionalmente, altere o nome da fila com `AZURE_QUEUE_NAME`. Cada mensagem
 salva no histórico é publicada automaticamente na fila para consumo posterior.

@@ -54,3 +54,30 @@ def authenticated_user_id() -> str:
     if user_id and user_id != g.user_id:
         raise PermissionError("O usuário informado não corresponde ao token")
     return g.user_id
+
+
+def _token_roles() -> set:
+    claims = getattr(g, "jwt_claims", None) or {}
+    roles = claims.get("roles") or claims.get("role") or []
+    if isinstance(roles, str):
+        roles = [roles]
+    if not isinstance(roles, list):
+        return set()
+    return {
+        str(role).upper().removeprefix("ROLE_")
+        for role in roles
+        if isinstance(role, str)
+    }
+
+
+def is_admin() -> bool:
+    """Admin pelo claim role/roles do JWT ou pela lista ADMIN_USERS do .env."""
+    if "ADMIN" in _token_roles():
+        return True
+
+    admin_users = {
+        user.strip()
+        for user in os.getenv("ADMIN_USERS", "").split(",")
+        if user.strip()
+    }
+    return getattr(g, "user_id", None) in admin_users
