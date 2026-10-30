@@ -86,6 +86,25 @@ veem só provas com status `APROVADO` e sem o gabarito.
 - GET /exams/answers — histórico de desempenho do usuário em todas as provas.
 - GET /exams/{exam_id}/answers/all — tentativas de todos os usuários (admin).
 
+### Materiais das matérias (Azure Blob)
+Arquivos (PDF, DOCX, PPTX, XLSX, TXT, MD, CSV, imagens) guardados no container
+`MATERIALS_CONTAINER` (padrão `aprovia-materiais`, criado privado no primeiro uso), com uma
+pasta por conteúdo: `matematica/aula.pdf`, `ingles/verbos.pdf`. O nome do conteúdo é
+normalizado (`Matemática Básica` → `matematica-basica`). Serão usados como fonte do RAG.
+Todo usuário autenticado pode ler; enviar, substituir e deletar é só para admins.
+- GET /materials/folders — lista as pastas (conteúdos).
+- GET /materials?conteudo=... — lista os arquivos (todos ou de uma pasta).
+- GET /materials/{conteudo}/{nome} — dados do arquivo (tamanho, tipo, quem enviou).
+- GET /materials/{conteudo}/{nome}/download — arquivo em streaming (`?download=1` força o download).
+- POST /materials/{conteudo} — envia arquivo (admin; multipart, campo `arquivo`). 409 se já existir.
+- PUT /materials/{conteudo}/{nome} — substitui o arquivo, mesma extensão (admin).
+- DELETE /materials/{conteudo}/{nome} — remove o arquivo (admin).
+
+```bash
+curl -X POST "http://127.0.0.1:5000/materials/matematica" \
+  -H "Authorization: Bearer $TOKEN" -F "arquivo=@equacoes.pdf"
+```
+
 Para gravar a prova de exemplo (`seeds/exam_example.json`) no MongoDB do `.env`:
 ```bash
 python -m seeds.seed_exam_example

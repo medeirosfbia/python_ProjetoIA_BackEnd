@@ -37,3 +37,9 @@ CORS_ORIGINS=http://localhost:8081
 # Nunca coloque AccountKey real neste arquivo.
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=<nome-da-conta>;AccountKey=<chave-da-conta>;EndpointSuffix=core.windows.net
 QUEUE_NAME=aprovia-chat-history
+
+# Container do Azure Blob com os materiais das matérias (PDFs etc., futuro contexto do RAG).
+# Usa a mesma AZURE_STORAGE_CONNECTION_STRING; o container é criado privado se não existir.
+MATERIALS_CONTAINER=aprovia-materiais
+# Tamanho máximo de cada arquivo enviado, em MB.
+MATERIALS_MAX_SIZE_MB=50

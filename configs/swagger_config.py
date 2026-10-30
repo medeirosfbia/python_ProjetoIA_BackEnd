@@ -13,7 +13,7 @@ swagger_template = {
             "url": "https://opensource.org/licenses/MIT"
         }
     },
-    "host": "localhost:5000",
+    # Sem "host": o Swagger usa o endereço em que a página foi aberta (evita bloqueio de CORS)
     "basePath": "/",
     "schemes": ["http", "https"],
     "consumes": ["application/json"],
@@ -26,6 +26,10 @@ swagger_template = {
         {
             "name": "exams",
             "description": "Provas/testes (criar, editar e deletar: somente admins) e respostas dos usuários"
+        },
+        {
+            "name": "materials",
+            "description": "Materiais das matérias no Azure Blob, uma pasta por conteúdo (leitura: todos; escrita: somente admins)"
         },
     ],
     "securityDefinitions": {
@@ -221,6 +225,21 @@ swagger_template = {
                 "configuracoes_teste": {"type": "object"},
                 "total_questoes": {"type": "integer"},
                 "questoes": {"type": "array", "items": {"$ref": "#/definitions/ExamQuestion"}}
+            }
+        },
+        "Material": {
+            "type": "object",
+            "properties": {
+                "conteudo": {"type": "string", "example": "matematica"},
+                "nome": {"type": "string", "example": "equacoes_1o_grau.pdf"},
+                "caminho": {"type": "string", "example": "matematica/equacoes_1o_grau.pdf"},
+                "tamanho_bytes": {"type": "integer", "example": 182044},
+                "content_type": {"type": "string", "example": "application/pdf"},
+                "atualizado_em": {"type": "string", "format": "date-time"},
+                "metadata": {
+                    "type": "object",
+                    "description": "enviado_por, enviado_em, atualizado_por, atualizado_em"
+                }
             }
         },
         "SubmitAnswersRequest": {
@@ -612,6 +631,120 @@ swagger_template = {
                 ],
                 "responses": {
                     "200": {"description": "Tentativas com detalhe por questão", "schema": {"type": "array", "items": {"$ref": "#/definitions/ExamAnswer"}}}
+                }
+            }
+        },
+        "/materials/folders": {
+            "get": {
+                "tags": ["materials"],
+                "summary": "Listar pastas (conteúdos)",
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {"description": "Nomes das pastas", "schema": {"type": "array", "items": {"type": "string"}, "example": ["ingles", "matematica"]}},
+                    "503": {"description": "Armazenamento não configurado", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/materials": {
+            "get": {
+                "tags": ["materials"],
+                "summary": "Listar materiais",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "conteudo", "in": "query", "type": "string", "required": False,
+                     "description": "Filtra por pasta. 'Matemática Básica' é normalizado para 'matematica-basica'"}
+                ],
+                "responses": {
+                    "200": {"description": "Materiais", "schema": {"type": "array", "items": {"$ref": "#/definitions/Material"}}},
+                    "400": {"description": "Conteúdo inválido", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}}
+                }
+            }
+        },
+        "/materials/{conteudo}": {
+            "post": {
+                "tags": ["materials"],
+                "summary": "Enviar material (admin)",
+                "description": (
+                    "Grava o arquivo em <conteudo>/<nome do arquivo>; a pasta é criada automaticamente. "
+                    "Extensões aceitas: pdf, txt, md, csv, doc, docx, ppt, pptx, xls, xlsx, png, jpg, jpeg."
+                ),
+                "security": [{"BearerAuth": []}],
+                "consumes": ["multipart/form-data"],
+                "parameters": [
+                    {"name": "conteudo", "in": "path", "type": "string", "required": True, "description": "Pasta, ex.: matematica"},
+                    {"name": "arquivo", "in": "formData", "type": "file", "required": True}
+                ],
+                "responses": {
+                    "201": {"description": "Material criado", "schema": {"$ref": "#/definitions/Material"}},
+                    "400": {"description": "Arquivo inválido", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "409": {"description": "Já existe um arquivo com esse nome na pasta", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "413": {"description": "Arquivo acima do limite", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/materials/{conteudo}/{nome}": {
+            "get": {
+                "tags": ["materials"],
+                "summary": "Obter dados do material",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "conteudo", "in": "path", "type": "string", "required": True},
+                    {"name": "nome", "in": "path", "type": "string", "required": True}
+                ],
+                "responses": {
+                    "200": {"description": "Material", "schema": {"$ref": "#/definitions/Material"}},
+                    "404": {"description": "Material não encontrado", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            },
+            "put": {
+                "tags": ["materials"],
+                "summary": "Substituir arquivo do material (admin)",
+                "description": "O novo arquivo precisa ter a mesma extensão; o nome e a pasta continuam os mesmos.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["multipart/form-data"],
+                "parameters": [
+                    {"name": "conteudo", "in": "path", "type": "string", "required": True},
+                    {"name": "nome", "in": "path", "type": "string", "required": True},
+                    {"name": "arquivo", "in": "formData", "type": "file", "required": True}
+                ],
+                "responses": {
+                    "200": {"description": "Material atualizado", "schema": {"$ref": "#/definitions/Material"}},
+                    "400": {"description": "Arquivo inválido", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "404": {"description": "Material não encontrado", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            },
+            "delete": {
+                "tags": ["materials"],
+                "summary": "Deletar material (admin)",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "conteudo", "in": "path", "type": "string", "required": True},
+                    {"name": "nome", "in": "path", "type": "string", "required": True}
+                ],
+                "responses": {
+                    "200": {"description": "Material deletado", "schema": {"$ref": "#/definitions/SuccessResponse"}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "404": {"description": "Material não encontrado", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/materials/{conteudo}/{nome}/download": {
+            "get": {
+                "tags": ["materials"],
+                "summary": "Baixar/visualizar o arquivo",
+                "description": "Retorna o arquivo em streaming, inline por padrão; use download=1 para forçar o download.",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/octet-stream"],
+                "parameters": [
+                    {"name": "conteudo", "in": "path", "type": "string", "required": True},
+                    {"name": "nome", "in": "path", "type": "string", "required": True},
+                    {"name": "download", "in": "query", "type": "string", "enum": ["1"], "required": False}
+                ],
+                "responses": {
+                    "200": {"description": "Conteúdo do arquivo", "schema": {"type": "file"}},
+                    "404": {"description": "Material não encontrado", "schema": {"$ref": "#/definitions/ErrorResponse"}}
                 }
             }
         },
