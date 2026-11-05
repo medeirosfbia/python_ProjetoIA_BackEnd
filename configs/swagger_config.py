@@ -31,6 +31,10 @@ swagger_template = {
             "name": "materials",
             "description": "Materiais das matérias no Azure Blob, uma pasta por conteúdo (leitura: todos; escrita: somente admins)"
         },
+        {
+            "name": "notifications",
+            "description": "Notificações push (entregues pela Azure Function em consumers_messaging). Também são enviadas automaticamente quando uma prova passa a APROVADO (data.type = exam_published, data.examId) e quando um material é enviado (data.type = material_created, data.conteudo, data.nome). Lembrete diário (data.type = daily_reminder) às 15h para quem ainda não usou o app no dia; qualquer requisição autenticada conta como uso."
+        },
     ],
     "securityDefinitions": {
         "BearerAuth": {
@@ -295,6 +299,48 @@ swagger_template = {
                         "correcao_concluida": {"type": "boolean"}
                     }
                 }
+            }
+        },
+        "PushTokenRequest": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "example": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+                    "description": "ExpoPushToken gerado pelo app (prefixo ExponentPushToken[ ou ExpoPushToken[)"
+                },
+                "platform": {"type": "string", "enum": ["android", "ios"], "example": "android"}
+            },
+            "required": ["token", "platform"]
+        },
+        "PushTokenDeleteRequest": {
+            "type": "object",
+            "properties": {
+                "token": {"type": "string", "example": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"}
+            },
+            "required": ["token"]
+        },
+        "NotificationSendRequest": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "maxLength": 100, "example": "Aviso"},
+                "body": {"type": "string", "maxLength": 500, "example": "Amanhã tem simulado!"},
+                "recipients": {
+                    "description": "\"all\" (padrão) ou lista de 1 a 500 usuários (sub do JWT); repetidos são ignorados",
+                    "example": ["ana", "bruno"]
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Dados extras repassados ao app; a Function adiciona data.type = \"custom\"",
+                    "example": {"examId": "prova_abc123"}
+                }
+            },
+            "required": ["title", "body"]
+        },
+        "NotificationQueuedResponse": {
+            "type": "object",
+            "properties": {
+                "messageId": {"type": "string", "description": "Id da mensagem na fila aprovia-notifications"}
             }
         }
     },
@@ -760,6 +806,52 @@ swagger_template = {
                 "responses": {
                     "200": {"description": "Tentativas", "schema": {"type": "array", "items": {"$ref": "#/definitions/ExamAnswer"}}},
                     "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/notifications/tokens": {
+            "post": {
+                "tags": ["notifications"],
+                "summary": "Cadastrar aparelho",
+                "description": "Chamado pelo app após o login e ao restaurar a sessão. Associa o token ao usuário do JWT; repetir não duplica. Se o token já pertencia a outro usuário (troca de conta no aparelho), passa a ser do atual.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/PushTokenRequest"}}
+                ],
+                "responses": {
+                    "201": {"description": "Token cadastrado", "schema": {"$ref": "#/definitions/PushTokenRequest"}},
+                    "400": {"description": "Dados inválidos", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}}
+                }
+            },
+            "delete": {
+                "tags": ["notifications"],
+                "summary": "Remover aparelho",
+                "description": "Chamado pelo app no logout e ao excluir a conta, antes de descartar o JWT. Só remove tokens do próprio usuário.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/PushTokenDeleteRequest"}}
+                ],
+                "responses": {
+                    "200": {"description": "Token removido", "schema": {"$ref": "#/definitions/SuccessResponse"}},
+                    "400": {"description": "Dados inválidos", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}},
+                    "404": {"description": "Token não pertence ao usuário", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/notifications/send": {
+            "post": {
+                "tags": ["notifications"],
+                "summary": "Enviar notificação avulsa (admin)",
+                "description": "Publica na fila de notificações; a Azure Function entrega via Expo Push. O 202 indica que a notificação foi enfileirada, não que chegou ao aparelho.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/NotificationSendRequest"}}
+                ],
+                "responses": {
+                    "202": {"description": "Notificação enfileirada", "schema": {"$ref": "#/definitions/NotificationQueuedResponse"}},
+                    "400": {"description": "Dados inválidos", "schema": {"$ref": "#/definitions/ValidationErrorResponse"}},
+                    "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "503": {"description": "Fila indisponível", "schema": {"$ref": "#/definitions/ErrorResponse"}}
                 }
             }
         }

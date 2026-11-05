@@ -6,12 +6,16 @@ DATABASE_NAME = os.getenv('DATABASE_NAME')
 ASSISTANT_COLLECTION = os.getenv('ASSISTANT_COLLECTION')
 EXAMS_COLLECTION = os.getenv('EXAMS_COLLECTION', 'exams')
 EXAM_ANSWERS_COLLECTION = os.getenv('EXAM_ANSWERS_COLLECTION', 'exam_answers')
+PUSH_TOKENS_COLLECTION = os.getenv('PUSH_TOKENS_COLLECTION', 'push_tokens')
+USER_ACTIVITY_COLLECTION = os.getenv('USER_ACTIVITY_COLLECTION', 'user_activity')
 
 client = MongoClient(URL_CONNECTION_MONGODB)
 db = client[DATABASE_NAME]
 collection = db[ASSISTANT_COLLECTION]
 exams_collection = db[EXAMS_COLLECTION]
 exam_answers_collection = db[EXAM_ANSWERS_COLLECTION]
+push_tokens_collection = db[PUSH_TOKENS_COLLECTION]
+user_activity_collection = db[USER_ACTIVITY_COLLECTION]
 
 collection.create_index([
     ("user_id", ASCENDING),
@@ -39,3 +43,17 @@ exam_answers_collection.create_index([
     ("usuario_id", ASCENDING),
     ("enviado_em", DESCENDING)
 ], name="user_recent_answers")
+
+# Um aparelho (token) pertence a um único usuário por vez
+push_tokens_collection.create_index([
+    ("token", ASCENDING)
+], unique=True, name="push_token_unique")
+
+push_tokens_collection.create_index([
+    ("user_id", ASCENDING)
+], name="push_token_user")
+
+# Um documento por usuário com o último dia em que ele usou o app
+user_activity_collection.create_index([
+    ("user_id", ASCENDING)
+], unique=True, name="user_activity_unique")

@@ -1,11 +1,12 @@
 import os
 from dotenv import load_dotenv
+# Antes dos imports do projeto: auth_service já abre a conexão com o MongoDB
+load_dotenv()
 from flask import Flask, jsonify
 from flask_cors import CORS
 from configs import swagger_config
 from flasgger import Swagger
 from services.auth_service import authenticate_request
-load_dotenv()
 from controllers.chat_controller import (
     new_chat_controller,
     continue_chat_controller,
@@ -32,6 +33,11 @@ from controllers.material_controller import (
     create_material_controller,
     update_material_controller,
     delete_material_controller,
+)
+from controllers.notification_controller import (
+    register_token_controller,
+    unregister_token_controller,
+    send_notification_controller,
 )
 
 TEMP_FOLDER = os.getenv('TEMP_FOLDER')
@@ -155,6 +161,21 @@ def route_update_material(conteudo, nome):
 @app.route('/materials/<conteudo>/<nome>', methods=['DELETE'])
 def route_delete_material(conteudo, nome):
     return delete_material_controller(conteudo, nome)
+
+
+# Notificações push. O app cadastra o ExpoPushToken após o login e o remove no logout.
+@app.route('/notifications/tokens', methods=['POST'])
+def route_register_push_token():
+    return register_token_controller()
+
+@app.route('/notifications/tokens', methods=['DELETE'])
+def route_unregister_push_token():
+    return unregister_token_controller()
+
+# Envio avulso (somente admins)
+@app.route('/notifications/send', methods=['POST'])
+def route_send_notification():
+    return send_notification_controller()
 
 if __name__ == "__main__":
     app.run()

@@ -4,6 +4,8 @@ import os
 import jwt
 from flask import g, jsonify, request
 
+from services.activity_service import record_activity
+
 
 def _jwt_key() -> bytes:
     secret = os.getenv("JWT_SECRET_B64")
@@ -46,6 +48,8 @@ def authenticate_request():
 
     g.user_id = subject
     g.jwt_claims = claims
+    # Usado pelo lembrete diário para saber quem ainda não entrou hoje
+    record_activity(subject)
     return None
 
 

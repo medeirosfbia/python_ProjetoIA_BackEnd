@@ -21,6 +21,12 @@ ASSISTANT_COLLECTION=assistant
 # Coleções de provas e de respostas dos usuários (opcionais; estes são os padrões).
 EXAMS_COLLECTION=exams
 EXAM_ANSWERS_COLLECTION=exam_answers
+# Tokens de push (ExpoPushToken) dos aparelhos dos usuários (opcional; este é o padrão).
+PUSH_TOKENS_COLLECTION=push_tokens
+# Último dia em que cada usuário usou o app (lembrete diário) (opcional; este é o padrão).
+USER_ACTIVITY_COLLECTION=user_activity
+# Fuso usado para decidir o que é "hoje"; deve ser igual ao da Azure Function.
+REMINDER_TIMEZONE=America/Sao_Paulo
 
 # Deve ser a mesma chave Base64 configurada em manager_back/.env.
 # Gere uma chave nova para cada ambiente; não reutilize a chave de produção.
@@ -37,6 +43,8 @@ CORS_ORIGINS=http://localhost:8081
 # Nunca coloque AccountKey real neste arquivo.
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=<nome-da-conta>;AccountKey=<chave-da-conta>;EndpointSuffix=core.windows.net
 QUEUE_NAME=aprovia-chat-history
+# Fila consumida pela Azure Function que envia as notificações push (opcional; este é o padrão).
+NOTIFICATIONS_QUEUE_NAME=aprovia-notifications
 
 # Container do Azure Blob com os materiais das matérias (PDFs etc., futuro contexto do RAG).
 # Usa a mesma AZURE_STORAGE_CONNECTION_STRING; o container é criado privado se não existir.

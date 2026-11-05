@@ -11,6 +11,7 @@ Deployment: Aplicação está deployada na Azure usando as etapas/configuraçõe
 - Configuração (.env)
 - Como rodar (desenvolvimento / produção / Docker)
 - Endpoints principais
+- Notificações push
 - Swagger / OpenAPI
 - Streaming
 - Persistência
@@ -105,6 +106,13 @@ curl -X POST "http://127.0.0.1:5000/materials/matematica" \
   -H "Authorization: Bearer $TOKEN" -F "arquivo=@equacoes.pdf"
 ```
 
+### Notificações push (app mobile)
+Resumo das rotas (detalhes em [Notificações push](#notificações-push)):
+
+- POST /notifications/tokens — cadastra o aparelho do usuário logado.
+- DELETE /notifications/tokens — remove o aparelho do usuário logado.
+- POST /notifications/send — notificação avulsa (admin).
+
 Para gravar a prova de exemplo (`seeds/exam_example.json`) no MongoDB do `.env`:
 ```bash
 python -m seeds.seed_exam_example
@@ -120,6 +128,55 @@ curl -N -X POST "http://127.0.0.1:5000/chats/new?user_id=test" \
   -H "Content-Type: application/json" \
   -d '{"model":"qwen2-math","message":"Como resolver 2+2?"}'
 ```
+
+## Notificações push
+
+A API não envia o push diretamente: guarda os aparelhos dos usuários (coleção
+`push_tokens`) e publica um evento na fila `aprovia-notifications`. Quem entrega
+ao celular, via Expo Push, é a Azure Function em `consumers_messaging`. Corpos,
+respostas e códigos de erro de cada rota estão no Swagger.
+
+| Arquivo | O que faz |
+|---|---|
+| `controllers/notification_controller.py` | Converte o resultado em HTTP (201/200, 400, 403, 404, 503). |
+| `services/notification_service.py` | Valida token, plataforma e envio avulso; monta as notificações automáticas. |
+| `models/push_token.py` | Grava (upsert pelo token) e remove o token do usuário no MongoDB. |
+| `messaging/queue_notification_producer.py` | Publica o evento na fila em JSON Base64, como o histórico. |
+| `configs/azure_config.py` | Cria o cliente (e a fila, se não existir) de notificações. |
+
+Regras principais:
+
+- O app cadastra o token após o login e o remove no logout, antes de descartar o JWT.
+- Se outra conta entrar no mesmo aparelho, o token passa a ser dela.
+- Notificações automáticas: prova que passa a `APROVADO` (`data.type = exam_published`,
+  só na transição, não a cada edição) e material enviado (`data.type = material_created`).
+- Uma falha na fila nas notificações automáticas só gera log: a prova ou o material
+  continuam salvos.
+- Lembrete diário: o `authenticate_request` registra o dia (fuso `REMINDER_TIMEZONE`)
+  em que o usuário fez a primeira requisição autenticada (coleção `user_activity`,
+  `services/activity_service.py`). Um cache em memória faz gravar no MongoDB só uma
+  vez por usuário por dia; falha na gravação só gera log. A Function usa isso para
+  lembrar, às 15h, quem ainda não entrou.
+
+Variáveis (opcionais; devem ser iguais na Function): `NOTIFICATIONS_QUEUE_NAME`
+(padrão `aprovia-notifications`), `PUSH_TOKENS_COLLECTION` (padrão `push_tokens`),
+`USER_ACTIVITY_COLLECTION` (padrão `user_activity`) e `REMINDER_TIMEZONE`
+(padrão `America/Sao_Paulo`).
+
+### Testes (`tests/test_notifications.py`)
+
+Usam mocks; não acessam MongoDB, fila nem Expo.
+
+| Grupo | O que cobre |
+|---|---|
+| `NotificationEndpointsTestCase` | Cadastro (201; token/plataforma/corpo inválidos → 400), remoção (200; token de outro usuário → 404) e envio avulso (não admin → 403, padrão `"all"` → 202, validação → 400, fila fora → 503). |
+| `NotificationServiceTestCase` | Destinatários sem repetição, formatos de token aceitos/rejeitados, notificação automática que nunca lança erro, conteúdo da notificação de prova e formato Base64 do produtor. |
+| `test_activity.py` | Uma gravação por usuário por dia, nova gravação no dia seguinte, falha no MongoDB não quebra a requisição, "hoje" no fuso de São Paulo, token válido registra atividade e token inválido não. |
+| `NotificationTriggersTestCase` | Prova criada `APROVADO` notifica; `RASCUNHO` não; `RASCUNHO` → `APROVADO` notifica uma única vez; material enviado notifica. |
+
+Rodar os testes com `AZURE_STORAGE_CONNECTION_STRING` preenchida cria a fila
+`aprovia-notifications` na conta (o `azure_config.py` cria as filas ao ser importado),
+mas nenhuma mensagem é publicada.
 
 ## Swagger / OpenAPI
 A documentação OpenAPI/Swagger é gerada pelo template em `configs/swagger_config.py`. A UI é exposta em `/swagger/`. O template atualmente referencia o domínio de deploy; atualize se necessário.

@@ -12,6 +12,7 @@ from azure.core.exceptions import (
 from werkzeug.utils import secure_filename
 
 from models import material as material_model
+from services.notification_service import notify_material_created
 
 # Extensão -> content type gravado no blob (não confiamos no tipo enviado pelo cliente)
 TIPOS_PERMITIDOS = {
@@ -150,13 +151,15 @@ def create_material(conteudo: str, arquivo, user_id: str) -> dict:
         "atualizado_em": agora,
     }
     try:
-        return material_model.upload_material(
+        material = material_model.upload_material(
             path, stream, length, content_type, metadata, overwrite=False
         )
     except ResourceExistsError as error:
         raise MaterialConflictError(
             f"Já existe o arquivo {path}; use PUT para substituí-lo"
         ) from error
+    notify_material_created(material)
+    return material
 
 
 def update_material(conteudo: str, nome: str, arquivo, user_id: str):

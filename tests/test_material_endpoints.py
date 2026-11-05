@@ -174,8 +174,9 @@ class MaterialServiceTestCase(unittest.TestCase):
             with self.assertRaises(MaterialValidationError):
                 material_service.normalize_conteudo(invalido)
 
+    @patch("services.material_service.notify_material_created")
     @patch("services.material_service.material_model")
-    def test_create_builds_path_and_content_type(self, model):
+    def test_create_builds_path_and_content_type(self, model, notify):
         model.upload_material.return_value = {"caminho": "matematica/Funcao_1o_grau.pdf"}
 
         material_service.create_material("Matemática", self.upload("Função 1º grau.PDF"), "ana")

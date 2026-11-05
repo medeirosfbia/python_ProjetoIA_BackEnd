@@ -4,6 +4,7 @@ from uuid import uuid4
 from pymongo.errors import DuplicateKeyError
 
 from models import exam as exam_model
+from services.notification_service import notify_exam_published
 
 STATUS_PUBLICADO = "APROVADO"
 STATUS_VALIDOS = ("RASCUNHO", "APROVADO", "ARQUIVADO")
@@ -310,6 +311,8 @@ def create_exam(user_id: str, data) -> dict:
         f"prova_{uuid4().hex[:12]}", campos, user_id, _now(), user_id
     )
     exam_model.insert_exam(exam)
+    if exam.get("status") == STATUS_PUBLICADO:
+        notify_exam_published(exam)
     return exam
 
 
@@ -329,6 +332,9 @@ def update_exam(exam_id: str, user_id: str, data):
     )
     if not exam_model.replace_exam(exam):
         return None
+    # Só avisa na transição para publicada, não a cada edição
+    if exam.get("status") == STATUS_PUBLICADO and atual.get("status") != STATUS_PUBLICADO:
+        notify_exam_published(exam)
     return exam
 
 
