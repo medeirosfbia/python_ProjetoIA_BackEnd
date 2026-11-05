@@ -47,3 +47,17 @@ def list_answers(filters: dict, include_details: bool = True, limit: int = 100) 
         filters,
         projection
     ).sort("enviado_em", DESCENDING).limit(limit))
+
+
+def list_answers_for_dashboard(user_id: str, limit: int = 500) -> list:
+    """Últimas tentativas do usuário (mais recentes primeiro), só com os campos do dashboard."""
+    return list(exam_answers_collection.find(
+        {"usuario_id": user_id},
+        {
+            "prova_id": 1,
+            "titulo_prova": 1,
+            "assunto_materia": 1,
+            "enviado_em": 1,
+            "respostas": 1,
+        }
+    ).sort("enviado_em", DESCENDING).limit(limit))

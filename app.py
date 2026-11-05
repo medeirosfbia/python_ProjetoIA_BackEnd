@@ -34,6 +34,7 @@ from controllers.material_controller import (
     update_material_controller,
     delete_material_controller,
 )
+from controllers.dashboard_controller import my_dashboard_controller
 from controllers.notification_controller import (
     register_token_controller,
     unregister_token_controller,
@@ -161,6 +162,12 @@ def route_update_material(conteudo, nome):
 @app.route('/materials/<conteudo>/<nome>', methods=['DELETE'])
 def route_delete_material(conteudo, nome):
     return delete_material_controller(conteudo, nome)
+
+
+# Dashboard de desempenho do usuário autenticado
+@app.route('/dashboard/me', methods=['GET'])
+def route_my_dashboard():
+    return my_dashboard_controller()
 
 
 # Notificações push. O app cadastra o ExpoPushToken após o login e o remove no logout.

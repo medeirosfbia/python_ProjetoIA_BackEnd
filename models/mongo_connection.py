@@ -8,6 +8,7 @@ EXAMS_COLLECTION = os.getenv('EXAMS_COLLECTION', 'exams')
 EXAM_ANSWERS_COLLECTION = os.getenv('EXAM_ANSWERS_COLLECTION', 'exam_answers')
 PUSH_TOKENS_COLLECTION = os.getenv('PUSH_TOKENS_COLLECTION', 'push_tokens')
 USER_ACTIVITY_COLLECTION = os.getenv('USER_ACTIVITY_COLLECTION', 'user_activity')
+USER_ACTIVITY_DAYS_COLLECTION = os.getenv('USER_ACTIVITY_DAYS_COLLECTION', 'user_activity_days')
 
 client = MongoClient(URL_CONNECTION_MONGODB)
 db = client[DATABASE_NAME]
@@ -16,6 +17,7 @@ exams_collection = db[EXAMS_COLLECTION]
 exam_answers_collection = db[EXAM_ANSWERS_COLLECTION]
 push_tokens_collection = db[PUSH_TOKENS_COLLECTION]
 user_activity_collection = db[USER_ACTIVITY_COLLECTION]
+user_activity_days_collection = db[USER_ACTIVITY_DAYS_COLLECTION]
 
 collection.create_index([
     ("user_id", ASCENDING),
@@ -57,3 +59,9 @@ push_tokens_collection.create_index([
 user_activity_collection.create_index([
     ("user_id", ASCENDING)
 ], unique=True, name="user_activity_unique")
+
+# Histórico: um documento por usuário por dia de uso (constância no dashboard)
+user_activity_days_collection.create_index([
+    ("user_id", ASCENDING),
+    ("day", DESCENDING)
+], unique=True, name="user_activity_day_unique")

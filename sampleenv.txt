@@ -25,6 +25,10 @@ EXAM_ANSWERS_COLLECTION=exam_answers
 PUSH_TOKENS_COLLECTION=push_tokens
 # Último dia em que cada usuário usou o app (lembrete diário) (opcional; este é o padrão).
 USER_ACTIVITY_COLLECTION=user_activity
+# Histórico de dias de uso (constância no dashboard) (opcional; este é o padrão).
+USER_ACTIVITY_DAYS_COLLECTION=user_activity_days
+# Meta de desempenho do dashboard, em percentual (opcional; este é o padrão).
+DASHBOARD_META_PERCENTUAL=70
 # Fuso usado para decidir o que é "hoje"; deve ser igual ao da Azure Function.
 REMINDER_TIMEZONE=America/Sao_Paulo
 

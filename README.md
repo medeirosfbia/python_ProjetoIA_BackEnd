@@ -12,6 +12,7 @@ Deployment: Aplicação está deployada na Azure usando as etapas/configuraçõe
 - Como rodar (desenvolvimento / produção / Docker)
 - Endpoints principais
 - Notificações push
+- Dashboard de desempenho
 - Swagger / OpenAPI
 - Streaming
 - Persistência
@@ -177,6 +178,33 @@ Usam mocks; não acessam MongoDB, fila nem Expo.
 Rodar os testes com `AZURE_STORAGE_CONNECTION_STRING` preenchida cria a fila
 `aprovia-notifications` na conta (o `azure_config.py` cria as filas ao ser importado),
 mas nenhuma mensagem é publicada.
+
+## Dashboard de desempenho
+
+`GET /dashboard/me` calcula, na hora, o desempenho do usuário autenticado a partir
+de `exam_answers` e do histórico de dias de uso. O formato completo da resposta está
+no Swagger. Arquivos: `services/dashboard_service.py` (cálculos) e
+`controllers/dashboard_controller.py`.
+
+| Pergunta | Como é calculado |
+|---|---|
+| Onde estava | `inicio`: média das 3 primeiras tentativas; `anterior`: média das 5 antes das últimas 5 |
+| Onde está | `atual`: média das últimas 5 tentativas (geral e por matéria) |
+| Tendência | Regressão linear das últimas 10 tentativas, em p.p. por tentativa: acima de +1 `subindo`, abaixo de -1 `caindo`; precisa de 3 tentativas |
+| O que fazer | `gap` até a meta, projeção de tentativas no ritmo atual e, nas matérias abaixo da meta, tópicos fracos, provas não feitas, provas para refazer, questões erradas e a pasta de materiais |
+
+Regras:
+
+- Notas viram percentual (0-100), pois `nota_maxima` varia entre provas.
+- Só entram questões corrigidas: dissertativas pendentes não contam como zero.
+  Tentativas só com pendentes aparecem em `aguardando_correcao`.
+- Meta padrão de 70% (`DASHBOARD_META_PERCENTUAL`). Depois pode virar uma meta por usuário.
+- Tópicos vêm do campo opcional `topico` de cada questão, copiado para a tentativa
+  na correção. Provas antigas sem `topico` só aparecem por matéria.
+- Constância (`dias_seguidos`, `dias_ultimos_7`, `dias_ultimos_30`) usa a coleção
+  `user_activity_days` (um documento por usuário por dia), gravada junto com `user_activity`.
+- Testes em `tests/test_dashboard.py`: cálculos, montagem com dados simulados, rota,
+  tópico nas provas e histórico de dias.
 
 ## Swagger / OpenAPI
 A documentação OpenAPI/Swagger é gerada pelo template em `configs/swagger_config.py`. A UI é exposta em `/swagger/`. O template atualmente referencia o domínio de deploy; atualize se necessário.

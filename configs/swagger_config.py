@@ -32,6 +32,10 @@ swagger_template = {
             "description": "Materiais das matérias no Azure Blob, uma pasta por conteúdo (leitura: todos; escrita: somente admins)"
         },
         {
+            "name": "dashboard",
+            "description": "Desempenho do usuário: onde estava, onde está, tendência e o que fazer para chegar à meta (padrão 70%). Percentuais de 0 a 100, só sobre questões já corrigidas."
+        },
+        {
             "name": "notifications",
             "description": "Notificações push (entregues pela Azure Function em consumers_messaging). Também são enviadas automaticamente quando uma prova passa a APROVADO (data.type = exam_published, data.examId) e quando um material é enviado (data.type = material_created, data.conteudo, data.nome). Lembrete diário (data.type = daily_reminder) às 15h para quem ainda não usou o app no dia; qualquer requisição autenticada conta como uso."
         },
@@ -173,6 +177,12 @@ swagger_template = {
                 "tipo": {"type": "string", "enum": ["multipla_escolha", "dissertativa", "desafio_codigo"]},
                 "peso": {"type": "number", "example": 2.0},
                 "enunciado": {"type": "string", "example": "Qual é o valor de x na equação 2x + 6 = 14?"},
+                "topico": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "example": "Equações do 1º grau",
+                    "description": "Opcional. Assunto dentro da matéria, usado no dashboard para apontar os pontos fracos"
+                },
                 "opcoes": {
                     "type": "array",
                     "items": {
@@ -299,6 +309,99 @@ swagger_template = {
                         "correcao_concluida": {"type": "boolean"}
                     }
                 }
+            }
+        },
+        "DashboardTrend": {
+            "type": "object",
+            "description": "Regressão linear das últimas 10 tentativas; null com menos de 3",
+            "properties": {
+                "direcao": {"type": "string", "enum": ["subindo", "estavel", "caindo"]},
+                "pp_por_tentativa": {"type": "number", "example": 2.1, "description": "Pontos percentuais ganhos (ou perdidos) por tentativa"}
+            }
+        },
+        "DashboardSummary": {
+            "type": "object",
+            "properties": {
+                "tentativas": {"type": "integer", "example": 12},
+                "inicio": {"type": "number", "example": 48.0, "description": "Média das 3 primeiras tentativas"},
+                "anterior": {"type": "number", "example": 55.0, "description": "Média das 5 tentativas antes das últimas 5 (null se não houver)"},
+                "atual": {"type": "number", "example": 63.0, "description": "Média das últimas 5 tentativas"},
+                "variacao": {"type": "number", "example": 8.0, "description": "atual - anterior"},
+                "tendencia": {"$ref": "#/definitions/DashboardTrend"},
+                "gap": {"type": "number", "example": 7.0, "description": "Quanto falta para a meta (0 se já atingiu)"},
+                "projecao_tentativas_ate_meta": {"type": "integer", "example": 4, "description": "0 se já atingiu; null se a tendência não é positiva ou passa de 50"}
+            }
+        },
+        "DashboardSubject": {
+            "type": "object",
+            "description": "DashboardSummary da matéria, mais pontos fracos e ações",
+            "properties": {
+                "assunto": {"type": "string", "example": "Matemática"},
+                "tentativas": {"type": "integer"},
+                "inicio": {"type": "number"},
+                "anterior": {"type": "number"},
+                "atual": {"type": "number"},
+                "variacao": {"type": "number"},
+                "tendencia": {"$ref": "#/definitions/DashboardTrend"},
+                "gap": {"type": "number"},
+                "projecao_tentativas_ate_meta": {"type": "integer"},
+                "topicos_fracos": {
+                    "type": "array",
+                    "description": "Tópicos abaixo da meta (mín. 3 questões, últimas 20), do pior para o melhor",
+                    "items": {"type": "object", "properties": {
+                        "topico": {"type": "string", "example": "Porcentagem"},
+                        "percentual": {"type": "number", "example": 40.0},
+                        "questoes": {"type": "integer", "example": 5}
+                    }}
+                },
+                "acoes": {
+                    "type": "object",
+                    "description": "Só para matérias abaixo da meta (null nas demais). Até 5 itens por lista.",
+                    "properties": {
+                        "provas_nao_feitas": {"type": "array", "items": {"type": "object", "properties": {
+                            "prova_id": {"type": "string"}, "titulo": {"type": "string"}}}},
+                        "refazer": {"type": "array", "description": "Provas publicadas que permitem refazer, com a última tentativa abaixo da meta",
+                                    "items": {"type": "object", "properties": {
+                            "prova_id": {"type": "string"}, "titulo": {"type": "string"}, "percentual": {"type": "number"}}}},
+                        "questoes_erradas": {"type": "array", "description": "Erradas ou em branco na última tentativa de cada prova",
+                                             "items": {"type": "object", "properties": {
+                            "prova_id": {"type": "string"}, "titulo_prova": {"type": "string"}, "id_questao": {"type": "string"},
+                            "topico": {"type": "string"}, "explicacao_gabarito": {"type": "string"}}}},
+                        "pasta_materiais": {"type": "string", "example": "matematica", "description": "Pasta em /materials para a matéria (pode não existir)"}
+                    }
+                }
+            }
+        },
+        "DashboardResponse": {
+            "type": "object",
+            "properties": {
+                "meta_percentual": {"type": "number", "example": 70},
+                "geral": {
+                    "description": "DashboardSummary de todas as tentativas, mais a evolução",
+                    "allOf": [
+                        {"$ref": "#/definitions/DashboardSummary"},
+                        {"type": "object", "properties": {"evolucao": {
+                            "type": "array",
+                            "description": "Últimas 50 tentativas em ordem cronológica (para o gráfico)",
+                            "items": {"type": "object", "properties": {
+                                "data": {"type": "string", "format": "date-time"},
+                                "percentual": {"type": "number", "example": 45.0},
+                                "assunto": {"type": "string"},
+                                "prova_id": {"type": "string"},
+                                "titulo_prova": {"type": "string"}
+                            }}
+                        }}}
+                    ]
+                },
+                "por_materia": {"type": "array", "description": "Ordenado do maior gap para o menor", "items": {"$ref": "#/definitions/DashboardSubject"}},
+                "dados_insuficientes": {"type": "array", "items": {"type": "string"}, "description": "Matérias com menos de 3 tentativas (sem tendência)"},
+                "materias_nao_iniciadas": {"type": "array", "items": {"type": "string"}, "description": "Matérias com provas publicadas que o usuário nunca fez"},
+                "aguardando_correcao": {"type": "integer", "description": "Tentativas que só têm questões pendentes de correção (fora dos cálculos)"},
+                "constancia": {"type": "object", "properties": {
+                    "dias_seguidos": {"type": "integer", "example": 4, "description": "Sequência terminando hoje ou ontem (máx. 90)"},
+                    "dias_ultimos_7": {"type": "integer", "example": 5},
+                    "dias_ultimos_30": {"type": "integer", "example": 18}
+                }}
             }
         },
         "PushTokenRequest": {
@@ -806,6 +909,17 @@ swagger_template = {
                 "responses": {
                     "200": {"description": "Tentativas", "schema": {"type": "array", "items": {"$ref": "#/definitions/ExamAnswer"}}},
                     "403": {"description": "Usuário não é admin", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                }
+            }
+        },
+        "/dashboard/me": {
+            "get": {
+                "tags": ["dashboard"],
+                "summary": "Dashboard de desempenho do usuário",
+                "description": "Calculado na hora a partir das tentativas em provas e dos dias de uso. Dissertativas pendentes ficam fora até serem corrigidas.",
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {"description": "Dashboard", "schema": {"$ref": "#/definitions/DashboardResponse"}}
                 }
             }
         },

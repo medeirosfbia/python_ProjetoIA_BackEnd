@@ -9,6 +9,7 @@ from services.notification_service import notify_exam_published
 STATUS_PUBLICADO = "APROVADO"
 STATUS_VALIDOS = ("RASCUNHO", "APROVADO", "ARQUIVADO")
 TIPOS_QUESTAO = ("multipla_escolha", "dissertativa", "desafio_codigo")
+TOPICO_MAX = 80
 
 # Campos que só admins podem ver antes de o usuário responder a prova
 CAMPOS_GABARITO = (
@@ -173,12 +174,22 @@ def _validate_questoes(questoes, errors):
         if not _is_int(ordem):
             errors.append(f"{prefix}.ordem deve ser um inteiro")
 
+        # Opcional: assunto dentro da matéria, usado no dashboard de desempenho
+        topico = questao.get("topico")
+        if topico is not None and not (
+            isinstance(topico, str) and len(topico.strip()) <= TOPICO_MAX
+        ):
+            errors.append(f"{prefix}.topico deve ser texto com até {TOPICO_MAX} caracteres")
+            topico = None
+        topico = topico.strip() if topico else None
+
         validas.append({
             "id_questao": id_questao,
             "ordem": ordem,
             "tipo": tipo,
             "peso": float(peso) if _is_positive_number(peso) else peso,
             "enunciado": questao.get("enunciado"),
+            **({"topico": topico} if topico else {}),
             **VALIDADORES_POR_TIPO[tipo](questao, prefix, errors),
         })
 
@@ -354,6 +365,9 @@ def _grade_question(questao, resposta, errors):
         "peso": questao["peso"],
         "resposta": resposta,
     }
+    # Copia o tópico para a tentativa: o histórico não muda se a prova for editada
+    if questao.get("topico"):
+        item["topico"] = questao["topico"]
 
     if resposta is None:
         return {**item, "correta": False, "pontos_obtidos": 0.0, "status_correcao": "em_branco"}
