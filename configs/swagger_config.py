@@ -85,6 +85,14 @@ swagger_template = {
                     "enum": ["qwen2-math", "llama3"],
                     "description": "Tutor da conversa. null em conversas criadas antes de o tutor ser salvo"
                 },
+                "origin": {
+                    "type": "object",
+                    "description": "Questão que originou a conversa (POST /chats/from-question); null nas demais",
+                    "properties": {
+                        "prova_id": {"type": "string"},
+                        "id_questao": {"type": "string"}
+                    }
+                },
                 "created_at": {
                     "type": "string",
                     "format": "date-time",
@@ -136,6 +144,23 @@ swagger_template = {
                 }
             },
             "required": ["message"]
+        },
+        "ExplainQuestionRequest": {
+            "type": "object",
+            "properties": {
+                "prova_id": {"type": "string", "example": "prova_exemplo_matematica_001"},
+                "id_questao": {"type": "string", "example": "q2"},
+                "model": {
+                    "type": "string",
+                    "enum": ["qwen2-math", "llama3"],
+                    "description": "Opcional: por padrão o tutor é escolhido pela matéria da prova (Matemática -> qwen2-math, Inglês -> llama3)"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Opcional: primeira mensagem do aluno. Padrão: \"Pode me explicar onde eu errei nesta questão?\" (ou equivalente em inglês)"
+                }
+            },
+            "required": ["prova_id", "id_questao"]
         },
         "ErrorResponse": {
             "type": "object",
@@ -453,11 +478,38 @@ swagger_template = {
         }
     },
     "paths": {
+        "/chats/from-question": {
+            "post": {
+                "tags": ["chats"],
+                "summary": "Abrir conversa sobre uma questão",
+                "description": (
+                    "Abre uma conversa com o tutor sobre uma questão da última tentativa do usuário na prova "
+                    "(ex.: itens de questoes_erradas do dashboard). O tutor recebe o enunciado, a resposta do "
+                    "aluno, o gabarito e o perfil do aluno; a conversa continua por POST /chats/{chat_id}/add. "
+                    "Resposta em streaming, com o id no header X-Chat-ID."
+                ),
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/ExplainQuestionRequest"}}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resposta do tutor em streaming",
+                        "headers": {"X-Chat-ID": {"type": "string", "description": "ID do chat criado"}},
+                        "schema": {"type": "string"}
+                    },
+                    "400": {"description": "Campos faltando, model inválido ou matéria sem tutor", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "404": {"description": "Questão não encontrada nas tentativas do usuário", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "409": {"description": "Questão ainda pendente de correção", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+                },
+                "produces": ["text/plain"]
+            }
+        },
         "/chats/new": {
             "post": {
                 "tags": ["chats"],
                 "summary": "Criar um novo chat",
-                "description": "Inicia uma nova conversa com o assistente de IA. Retorna resposta em streaming.",
+                "description": "Inicia uma nova conversa com o assistente de IA. Retorna resposta em streaming. O tutor recebe o perfil do aluno na matéria (desempenho, tendência e tópicos com dificuldade), calculado na criação da conversa.",
                 "security": [{"BearerAuth": []}],
                 "parameters": [
                     {

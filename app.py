@@ -8,6 +8,7 @@ from configs import swagger_config
 from flasgger import Swagger
 from services.auth_service import authenticate_request
 from controllers.chat_controller import (
+    explain_question_controller,
     new_chat_controller,
     continue_chat_controller,
     list_chats_controller,
@@ -83,6 +84,11 @@ def route_new_chat():
 def route_resume_chat(chat_id):
     return continue_chat_controller(chat_id)
         
+# Conversa sobre uma questão da última tentativa do usuário (ex.: questoes_erradas do dashboard)
+@app.route('/chats/from-question', methods=['POST'])
+def route_explain_question():
+    return explain_question_controller()
+
 @app.route('/chats', methods=['GET'])
 def route_list_chats():
     return list_chats_controller()

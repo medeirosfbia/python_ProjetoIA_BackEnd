@@ -13,6 +13,7 @@ Deployment: Aplicação está deployada na Azure usando as etapas/configuraçõe
 - Endpoints principais
 - Notificações push
 - Dashboard de desempenho
+- Tutor (chat)
 - Swagger / OpenAPI
 - Streaming
 - Persistência
@@ -205,6 +206,24 @@ Regras:
   `user_activity_days` (um documento por usuário por dia), gravada junto com `user_activity`.
 - Testes em `tests/test_dashboard.py`: cálculos, montagem com dados simulados, rota,
   tópico nas provas e histórico de dias.
+
+## Tutor (chat)
+
+Tutores aceitos (`TUTORES` em `services/chat_service.py`): `qwen2-math` (Matemática) e
+`llama3` (Inglês). Outro `model` retorna 400. O tutor fica salvo na conversa.
+
+- **Perfil do aluno:** ao criar a conversa, o prompt do tutor recebe o desempenho recente
+  do aluno na matéria do tutor, a tendência e até 3 tópicos abaixo da meta
+  (`dashboard_service.subject_snapshot`). O texto fica salvo em `context` na conversa e é
+  reutilizado nas mensagens seguintes. Sem tentativas, ou se o cálculo falhar, o tutor
+  responde sem perfil.
+- **Explicar uma questão:** `POST /chats/from-question` abre uma conversa sobre uma questão
+  da última tentativa do aluno (por exemplo, um item de `questoes_erradas` do dashboard).
+  O prompt recebe enunciado, opções, resposta do aluno, resposta correta e explicação do
+  gabarito; o tutor é escolhido pela matéria da prova. Questões pendentes de correção
+  retornam 409.
+- Textos extras do prompt em `services/tutor_context.py`, no idioma do tutor.
+- Testes em `tests/test_chat_service.py` e `tests/test_tutor.py`.
 
 ## Swagger / OpenAPI
 A documentação OpenAPI/Swagger é gerada pelo template em `configs/swagger_config.py`. A UI é exposta em `/swagger/`. O template atualmente referencia o domínio de deploy; atualize se necessário.

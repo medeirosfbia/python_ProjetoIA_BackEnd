@@ -2,8 +2,13 @@ from datetime import datetime
 from models.mongo_connection import collection
 from messaging.queue_history_producer import publicar_mensagem_historico
 
-def create_chat(user_id: str, title: str = None, model: str = None) -> str:
-    """Inicia uma nova conversa para o usuário, guardando o tutor (model) usado"""
+def create_chat(user_id: str, title: str = None, model: str = None,
+                context: dict = None, origin: dict = None) -> str:
+    """Inicia uma nova conversa para o usuário, guardando o tutor (model) usado.
+
+    context: textos extras do prompt do tutor (perfil do aluno, questão em revisão).
+    origin: de onde a conversa foi aberta (ex.: prova_id e id_questao).
+    """
     chat_id = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     collection.insert_one({
@@ -11,6 +16,8 @@ def create_chat(user_id: str, title: str = None, model: str = None) -> str:
         "chat_id": chat_id,
         "title" : title or f"Conversa {datetime.now().strftime('%d/%m')}",
         "model": model,
+        "context": context or {},
+        "origin": origin,
         "created_at": datetime.now(),
         "updated_at": datetime.now(),
         "messages": []
@@ -41,6 +48,7 @@ def get_chat_info(user_id, chat_id):
         "messages": 1,
         "title": 1,
         "model": 1,
+        "origin": 1,
         "created_at": 1
     })
 
@@ -50,7 +58,7 @@ def get_chat_info(user_id, chat_id):
 def get_chat_messages(user_id, chat_id):
     conv = collection.find_one(
         {"user_id": user_id, "chat_id": chat_id},
-        {"_id": 0, "messages": 1, "model": 1}
+        {"_id": 0, "messages": 1, "model": 1, "context": 1}
     )
 
     if not conv:

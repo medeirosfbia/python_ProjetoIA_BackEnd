@@ -17,11 +17,12 @@ def chunks(*partes):
     return iter([{"message": {"content": parte}} for parte in partes])
 
 
+@patch("services.chat_service.subject_snapshot", return_value=None)
 @patch("services.chat_service.update_chat")
 @patch("services.chat_service.create_chat", return_value="chat-1")
 @patch("services.chat_service.ollama")
 class NewChatTestCase(unittest.TestCase):
-    def test_english_chat_uses_llama3_and_english_prompt(self, ollama, create_chat, update_chat):
+    def test_english_chat_uses_llama3_and_english_prompt(self, ollama, create_chat, update_chat, snapshot):
         # Bug corrigido: "llama3" (id enviado pelos apps) quebrava com UnboundLocalError
         ollama.chat.return_value = chunks("Hi")
 
@@ -31,9 +32,11 @@ class NewChatTestCase(unittest.TestCase):
         kwargs = ollama.chat.call_args.kwargs
         self.assertEqual(kwargs["model"], "llama3")
         self.assertEqual(kwargs["messages"][0]["content"], chat_service.english_context)
-        create_chat.assert_called_once_with("ana", title="Hello...", model="llama3")
+        create_chat.assert_called_once_with(
+            "ana", title="Hello...", model="llama3", context={}, origin=None
+        )
 
-    def test_math_chat_uses_math_prompt(self, ollama, create_chat, update_chat):
+    def test_math_chat_uses_math_prompt(self, ollama, create_chat, update_chat, snapshot):
         ollama.chat.return_value = chunks("1")
 
         "".join(query_new_chat("ana", "qwen2-math", "2+2")["resposta_stream"])
@@ -42,14 +45,14 @@ class NewChatTestCase(unittest.TestCase):
         self.assertEqual(kwargs["model"], "qwen2-math")
         self.assertEqual(kwargs["messages"][0]["content"], chat_service.math_context)
 
-    def test_invalid_model_fails_before_creating_chat(self, ollama, create_chat, update_chat):
+    def test_invalid_model_fails_before_creating_chat(self, ollama, create_chat, update_chat, snapshot):
         for invalido in ("llama3.2:3b", "gpt-qualquer", None):
             with self.assertRaises(InvalidModelError):
                 query_new_chat("ana", invalido, "oi")
         create_chat.assert_not_called()
         ollama.chat.assert_not_called()
 
-    def test_saves_complete_response(self, ollama, create_chat, update_chat):
+    def test_saves_complete_response(self, ollama, create_chat, update_chat, snapshot):
         ollama.chat.return_value = chunks("Olá", ", tudo bem?")
 
         resposta = "".join(query_new_chat("ana", "llama3", "oi")["resposta_stream"])
@@ -58,7 +61,7 @@ class NewChatTestCase(unittest.TestCase):
         update_chat.assert_any_call("ana", "chat-1", "user", "oi")
         update_chat.assert_called_with("ana", "chat-1", "assistant", "Olá, tudo bem?")
 
-    def test_model_error_is_streamed_but_not_saved(self, ollama, create_chat, update_chat):
+    def test_model_error_is_streamed_but_not_saved(self, ollama, create_chat, update_chat, snapshot):
         def falha():
             yield {"message": {"content": "Parcial"}}
             raise ConnectionError("ollama fora")

@@ -166,10 +166,7 @@ def subject_actions(assunto, answers, published_exams, meta):
         if percentual is not None and percentual < meta:
             refazer.append({"prova_id": exam["_id"], "titulo": exam.get("titulo"), "percentual": percentual})
 
-    try:
-        pasta = normalize_conteudo(assunto)
-    except MaterialValidationError:
-        pasta = None
+    pasta = subject_key(assunto)
 
     return {
         "provas_nao_feitas": [
@@ -197,6 +194,14 @@ def consistency(active_days, today):
         "dias_ultimos_7": sum(1 for d in dias if today - d < timedelta(days=7)),
         "dias_ultimos_30": sum(1 for d in dias if today - d < timedelta(days=30)),
     }
+
+
+def subject_key(assunto):
+    """Chave para comparar matérias ignorando acentos e maiúsculas ("Matemática" -> "matematica")."""
+    try:
+        return normalize_conteudo(assunto)
+    except MaterialValidationError:
+        return None
 
 
 def _iso(value):
@@ -271,4 +276,21 @@ def build_dashboard(user_id: str, meta: float = META_PERCENTUAL) -> dict:
         } - set(materias)),
         "aguardando_correcao": aguardando_correcao,
         "constancia": consistency(user_activity_model.list_active_days(user_id, desde), today),
+    }
+
+
+def subject_snapshot(user_id: str, materia: str, meta: float = META_PERCENTUAL):
+    """Desempenho do usuário numa matéria (chave de subject_key), ou None sem tentativas avaliadas."""
+    answers = [
+        answer for answer in reversed(exam_model.list_answers_for_dashboard(user_id))
+        if subject_key(answer.get("assunto_materia")) == materia
+    ]
+    valores = [p for p in map(attempt_percentual, answers) if p is not None]
+    if not valores:
+        return None
+    return {
+        "assunto": answers[-1].get("assunto_materia"),
+        "meta": meta,
+        **summarize(valores, meta),
+        "topicos_fracos": weak_topics(answers, meta),
     }
