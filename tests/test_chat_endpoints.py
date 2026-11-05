@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import app as app_module
+from services.chat_service import ChatNotFoundError, InvalidModelError
 
 
 class ChatEndpointsTestCase(unittest.TestCase):
@@ -126,6 +127,55 @@ class ChatEndpointsTestCase(unittest.TestCase):
             "model e message são obrigatórios",
         )
         query_new_chat.assert_not_called()
+
+    @patch("controllers.chat_controller.query_new_chat")
+    def test_new_chat_rejects_unknown_model(self, query_new_chat):
+        query_new_chat.side_effect = InvalidModelError("llama3.2:3b")
+
+        response = self.client.post(
+            "/chats/new", json={"model": "llama3.2:3b", "message": "Hello"}
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("qwen2-math", response.get_json()["error"])
+
+    @patch("controllers.chat_controller.continue_chat")
+    def test_continue_chat_accepts_missing_model(self, continue_chat):
+        continue_chat.return_value = {
+            "chat_id": "chat-1",
+            "resposta_stream": iter(["ok"]),
+        }
+
+        response = self.client.post("/chats/chat-1/add", json={"message": "e agora?"})
+
+        self.assertEqual(response.status_code, 200)
+        continue_chat.assert_called_once_with("user-1", "chat-1", None, "e agora?")
+
+    @patch("controllers.chat_controller.continue_chat")
+    def test_continue_chat_requires_message(self, continue_chat):
+        response = self.client.post("/chats/chat-1/add", json={"model": "llama3"})
+
+        self.assertEqual(response.status_code, 400)
+        continue_chat.assert_not_called()
+
+    @patch(
+        "controllers.chat_controller.continue_chat",
+        side_effect=ChatNotFoundError("chat-x"),
+    )
+    def test_continue_missing_chat_returns_not_found(self, continue_chat):
+        response = self.client.post("/chats/chat-x/add", json={"message": "oi"})
+
+        self.assertEqual(response.status_code, 404)
+
+    @patch(
+        "controllers.chat_controller.continue_chat",
+        side_effect=InvalidModelError(None),
+    )
+    def test_continue_old_chat_without_model_returns_bad_request(self, continue_chat):
+        response = self.client.post("/chats/chat-1/add", json={"message": "oi"})
+
+        self.assertEqual(response.status_code, 400)
+
 
 if __name__ == "__main__":
     unittest.main()

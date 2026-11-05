@@ -64,6 +64,11 @@ swagger_template = {
                     "type": "string",
                     "description": "Título do chat baseado na primeira mensagem"
                 },
+                "model": {
+                    "type": "string",
+                    "enum": ["qwen2-math", "llama3"],
+                    "description": "Tutor da conversa. null em conversas criadas antes de o tutor ser salvo"
+                },
                 "created_at": {
                     "type": "string",
                     "format": "date-time",
@@ -106,7 +111,7 @@ swagger_template = {
                     "type": "string",
                     "enum": ["qwen2-math", "llama3"],
                     "example": "qwen2-math",
-                    "description": "Modelo de IA a ser usado"
+                    "description": "Opcional: a conversa usa o tutor salvo nela. Só é exigido em conversas antigas, sem tutor salvo"
                 },
                 "message": {
                     "type": "string",
@@ -114,7 +119,7 @@ swagger_template = {
                     "description": "Nova mensagem para continuar a conversa"
                 }
             },
-            "required": ["model", "message"]
+            "required": ["message"]
         },
         "ErrorResponse": {
             "type": "object",
