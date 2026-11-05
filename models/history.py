@@ -1,10 +1,12 @@
 from datetime import datetime
+from uuid import uuid4
 from models.mongo_connection import collection
 from messaging.queue_history_producer import publicar_mensagem_historico
 
 def create_chat(user_id: str, title: str = None) -> str:
     """Inicia uma nova conversa para o usuário"""
-    chat_id = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # Sufixo aleatório: duas conversas no mesmo segundo não colidem no índice único
+    chat_id = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}"
 
     collection.insert_one({
         "user_id" : user_id,
