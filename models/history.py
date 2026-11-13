@@ -1,14 +1,16 @@
 from datetime import datetime
+from pymongo import ReturnDocument
 from models.mongo_connection import collection
 from messaging.queue_history_producer import publicar_mensagem_historico
 
-def create_chat(user_id: str, title: str = None) -> str:
+def create_chat(user_id: str, model: str, title: str = None) -> str:
     """Inicia uma nova conversa para o usuário"""
     chat_id = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     collection.insert_one({
         "user_id" : user_id,
         "chat_id": chat_id,
+        "model": model,
         "title" : title or f"Conversa {datetime.now().strftime('%d/%m')}",
         "created_at": datetime.now(),
         "updated_at": datetime.now(),
@@ -26,7 +28,7 @@ def list_last_chats(user_id: str, limit: int = 10) -> list:
     """Lista todas as conversas do usuário (mais recentes primeiro)"""
     chats_list = list(collection.find(
         {"user_id": user_id},
-        {"_id": 0, "chat_id": 1, "title": 1, "updated_at": 1}
+        {"_id": 0, "chat_id": 1, "title": 1, "updated_at": 1, "model": 1}
     ).sort("updated_at", -1).limit(limit))
     
     return chats_list
@@ -38,6 +40,8 @@ def get_chat_info(user_id, chat_id):
     }, {
         "_id": 0,
         "messages": 1,
+        "chat_id": 1,
+        "model": 1,
         "title": 1,
         "created_at": 1
     })
@@ -45,10 +49,34 @@ def get_chat_info(user_id, chat_id):
     return chat
 
 
+def associate_chat_model(user_id: str, chat_id: str, model: str):
+    """Associa um tutor uma única vez, sem inferir chats legados."""
+    chat = collection.find_one_and_update(
+        {"user_id": user_id, "chat_id": chat_id,
+         "$or": [{"model": {"$exists": False}}, {"model": None}]},
+        {"$set": {"model": model}},
+        projection={"_id": 0, "chat_id": 1, "model": 1},
+        return_document=ReturnDocument.AFTER,
+    )
+    if chat:
+        return chat, False
+
+    # Nunca revela documento de outro usuário: a busca também usa user_id.
+    existing = collection.find_one(
+        {"user_id": user_id, "chat_id": chat_id},
+        {"_id": 0, "chat_id": 1, "model": 1},
+    )
+    if not existing:
+        return None, False
+    if existing.get("model") == model:
+        return existing, False
+    return existing, True
+
+
 def get_chat_messages(user_id, chat_id):
     conv = collection.find_one(
         {"user_id": user_id, "chat_id": chat_id},
-        {"_id": 0, "messages": 1}
+        {"_id": 0, "messages": 1, "model": 1}
     )
 
     if not conv:

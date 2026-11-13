@@ -11,6 +11,11 @@ COLLECTION_NAME=local-test
 # Modelo usado para gerar embeddings.
 TEXT_EMBEDDING_MODEL=nomic-embed-text
 
+# Nomes reais executados no Ollama. A API mantém os aliases públicos llama3
+# (Inglês) e qwen2-math (Matemática); não há equivalência implícita entre eles.
+OLLAMA_ENGLISH_MODEL=llama3
+OLLAMA_MATH_MODEL=qwen2-math
+
 # URI do MongoDB. Use a URI real apenas no arquivo .env local.
 # Exemplo Atlas:
 URL_CONNECTION_MONGODB=mongodb+srv://<usuario>:<senha>@<cluster>/?appName=AprovIA

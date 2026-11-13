@@ -80,6 +80,11 @@ swagger_template = {
                     "type": "string",
                     "description": "Título do chat baseado na primeira mensagem"
                 },
+                "model": {
+                    "type": "string",
+                    "enum": ["qwen2-math", "llama3"],
+                    "description": "Alias público do tutor persistido no chat"
+                },
                 "created_at": {
                     "type": "string",
                     "format": "date-time",
@@ -130,7 +135,14 @@ swagger_template = {
                     "description": "Nova mensagem para continuar a conversa"
                 }
             },
-            "required": ["model", "message"]
+            "required": ["message"]
+        },
+        "ChatModelRequest": {
+            "type": "object",
+            "properties": {
+                "model": {"type": "string", "enum": ["qwen2-math", "llama3"]}
+            },
+            "required": ["model"]
         },
         "ErrorResponse": {
             "type": "object",
@@ -138,6 +150,10 @@ swagger_template = {
                 "error": {
                     "type": "string",
                     "description": "Descrição do erro ocorrido"
+                },
+                "code": {
+                    "type": "string",
+                    "description": "Código estruturado, quando aplicável"
                 }
             },
             "required": ["error"]
@@ -540,6 +556,10 @@ swagger_template = {
                     "404": {
                         "description": "Chat não encontrado",
                         "schema": {"$ref": "#/definitions/ErrorResponse"}
+                    },
+                    "409": {
+                        "description": "Chat sem modelo ou modelo divergente",
+                        "schema": {"$ref": "#/definitions/ErrorResponse"}
                     }
                 },
                 "produces": ["text/plain"]
@@ -619,6 +639,24 @@ swagger_template = {
                         "description": "Chat não encontrado",
                         "schema": {"$ref": "#/definitions/ErrorResponse"}
                     }
+                }
+            }
+        },
+        "/chats/{chat_id}/model": {
+            "patch": {
+                "tags": ["chats"],
+                "summary": "Associar tutor a um chat legado",
+                "description": "Disponível apenas para o dono autenticado. Só define model quando o campo está ausente ou null; repetir o mesmo model é seguro. Não altera mensagens.",
+                "security": [{"BearerAuth": []}],
+                "parameters": [
+                    {"name": "chat_id", "in": "path", "type": "string", "required": True},
+                    {"in": "body", "name": "body", "required": True, "schema": {"$ref": "#/definitions/ChatModelRequest"}}
+                ],
+                "responses": {
+                    "200": {"description": "Tutor persistido", "schema": {"type": "object", "properties": {"chat_id": {"type": "string"}, "model": {"type": "string"}}}},
+                    "400": {"description": "Modelo inválido", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "404": {"description": "Chat não encontrado", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+                    "409": {"description": "Chat já associado a outro tutor", "schema": {"$ref": "#/definitions/ErrorResponse"}}
                 }
             }
         },

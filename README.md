@@ -56,6 +56,15 @@ Copie `sampleenv.txt` → `.env` e ajuste:
 - URL_CONNECTION_MONGODB
 - DATABASE_NAME, ASSISTANT_COLLECTION
 
+### Tutores de chat
+
+Os identificadores públicos da API são estáveis: `llama3` é o tutor de Inglês e
+`qwen2-math` é o tutor de Matemática. O documento do chat guarda esse alias em
+`model`; o nome executado pelo Ollama é separado e configurável por ambiente:
+`OLLAMA_ENGLISH_MODEL` (padrão `llama3`) e `OLLAMA_MATH_MODEL` (padrão
+`qwen2-math`). Não existe conversão implícita entre `llama3` e `llama3.2:3b`.
+Confirme os nomes disponíveis com `ollama list` no host antes de reiniciar.
+
 ## Como rodar (desenvolvimento)
 ```bash
 python -m venv venv
@@ -70,6 +79,16 @@ Swagger UI padrão: `http://127.0.0.1:5000/swagger/`
 - POST /chats/{chat_id}/add?user_id={user_id} — continua chat.
 - GET /chats?user_id={user_id} — lista chats.
 - GET /chats/{chat_id}?user_id={user_id} — retorna histórico.
+- PATCH /chats/{chat_id}/model — associa explicitamente `{"model":"llama3"}` a
+  um chat legado sem `model`; só o dono autenticado pode fazê-lo.
+
+`PATCH /chats/{chat_id}/model` retorna `200 {"chat_id":"...","model":"llama3"}`.
+Aceita apenas `llama3` ou `qwen2-math`: inválido retorna `400` com
+`code: INVALID_CHAT_MODEL`. Chat ausente (inclusive de outro usuário) retorna `404`.
+Se já houver outro tutor retorna `409` com `code: CHAT_MODEL_CONFLICT`; repetir o
+mesmo tutor retorna `200`. A continuação de chat legado sem `model` retorna `409`
+com `code: CHAT_MODEL_REQUIRED`; enviar um alias diferente do persistido retorna
+`409` com `code: CHAT_MODEL_CONFLICT`.
 - DELETE /chats/{chat_id}/delete?user_id={user_id} — remove chat.
 
 ### Provas

@@ -127,5 +127,56 @@ class ChatEndpointsTestCase(unittest.TestCase):
         )
         query_new_chat.assert_not_called()
 
+    @patch("controllers.chat_controller.query_new_chat")
+    def test_new_chat_rejects_unknown_model_before_creating_chat(self, query_new_chat):
+        response = self.client.post(
+            "/chats/new", json={"model": "llama3.2:3b", "message": "Hello"}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["code"], "INVALID_CHAT_MODEL")
+        query_new_chat.assert_not_called()
+
+    @patch("controllers.chat_controller.continue_chat")
+    def test_continue_accepts_legacy_model_and_rejects_unknown_one(self, continue_chat):
+        response = self.client.post(
+            "/chats/chat-1/add", json={"model": "unknown", "message": "Oi"}
+        )
+        self.assertEqual(response.status_code, 400)
+        continue_chat.assert_not_called()
+
+    @patch("controllers.chat_controller.continue_chat")
+    def test_continue_requires_explicit_model_for_legacy_chat(self, continue_chat):
+        from services.chat_service import ChatModelRequiredError
+
+        continue_chat.side_effect = ChatModelRequiredError()
+        response = self.client.post("/chats/chat-1/add", json={"message": "Oi"})
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.get_json()["code"], "CHAT_MODEL_REQUIRED")
+
+    @patch("controllers.chat_controller.continue_chat")
+    def test_continue_rejects_different_persisted_tutor(self, continue_chat):
+        from services.chat_service import ChatModelConflictError
+
+        continue_chat.side_effect = ChatModelConflictError()
+        response = self.client.post(
+            "/chats/chat-1/add", json={"model": "qwen2-math", "message": "Oi"}
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.get_json()["code"], "CHAT_MODEL_CONFLICT")
+
+    @patch("controllers.chat_controller.associate_chat_model")
+    def test_associate_legacy_chat_model(self, associate_chat_model):
+        associate_chat_model.return_value = ({"chat_id": "chat-1", "model": "llama3"}, False)
+        response = self.client.patch("/chats/chat-1/model", json={"model": "llama3"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"chat_id": "chat-1", "model": "llama3"})
+        associate_chat_model.assert_called_once_with("user-1", "chat-1", "llama3")
+
+    @patch("controllers.chat_controller.associate_chat_model")
+    def test_associate_legacy_chat_model_does_not_expose_other_user(self, associate_chat_model):
+        associate_chat_model.return_value = (None, False)
+        response = self.client.patch("/chats/chat-2/model", json={"model": "llama3"})
+        self.assertEqual(response.status_code, 404)
+
 if __name__ == "__main__":
     unittest.main()
