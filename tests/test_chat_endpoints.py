@@ -176,6 +176,31 @@ class ChatEndpointsTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
 
+    @patch("controllers.chat_controller.associate_chat_model")
+    def test_associate_legacy_chat_model(self, associate_chat_model):
+        associate_chat_model.return_value = ({"chat_id": "chat-1", "model": "llama3"}, False)
+        response = self.client.patch("/chats/chat-1/model", json={"model": "llama3"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"chat_id": "chat-1", "model": "llama3"})
+        associate_chat_model.assert_called_once_with("user-1", "chat-1", "llama3")
+
+    @patch("controllers.chat_controller.associate_chat_model")
+    def test_associate_legacy_chat_model_does_not_expose_other_user(self, associate_chat_model):
+        associate_chat_model.return_value = (None, False)
+        response = self.client.patch("/chats/chat-2/model", json={"model": "llama3"})
+        self.assertEqual(response.status_code, 404)
+
+    def test_associate_chat_model_rejects_unknown_model(self):
+        response = self.client.patch("/chats/chat-1/model", json={"model": "llama3.2:3b"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["code"], "INVALID_CHAT_MODEL")
+
+    @patch("controllers.chat_controller.associate_chat_model")
+    def test_associate_chat_model_rejects_different_tutor(self, associate_chat_model):
+        associate_chat_model.return_value = ({"chat_id": "chat-1", "model": "qwen2-math"}, True)
+        response = self.client.patch("/chats/chat-1/model", json={"model": "llama3"})
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.get_json()["code"], "CHAT_MODEL_CONFLICT")
 
 if __name__ == "__main__":
     unittest.main()

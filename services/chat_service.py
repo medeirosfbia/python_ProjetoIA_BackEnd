@@ -1,4 +1,5 @@
 import logging
+import os
 import ollama
 from models import exam as exam_model
 from models.history import (
@@ -18,12 +19,13 @@ math_context = "Você é um assistente especializado em resolver problemas matem
 english_context = "You are an assistant specialized in helping with english study. Answer with a clear and concise step-by-step explanation. Prefer to respond in english but translate if the student is facing dificulties. Never provide the final answer, only the step-by-step process. If you don't know the answer, say that you don't know. If the question is related to mathematics, say that you don't know and do not attempt to answer."
 
 # Tutores aceitos pela API: id enviado pelos apps -> modelo do Ollama, prompt,
-# matéria (chave de subject_key) e idioma dos textos extras do prompt
+# matéria (chave de subject_key) e idioma dos textos extras do prompt.
+# OLLAMA_MATH_MODEL / OLLAMA_ENGLISH_MODEL trocam o modelo real sem mudar o id público
 TUTORES = {
-    "qwen2-math": {"ollama_model": "qwen2-math", "system_prompt": math_context,
-                   "materia": "matematica", "idioma": "pt"},
-    "llama3": {"ollama_model": "llama3", "system_prompt": english_context,
-               "materia": "ingles", "idioma": "en"},
+    "qwen2-math": {"ollama_model": os.getenv("OLLAMA_MATH_MODEL", "qwen2-math"),
+                   "system_prompt": math_context, "materia": "matematica", "idioma": "pt"},
+    "llama3": {"ollama_model": os.getenv("OLLAMA_ENGLISH_MODEL", "llama3"),
+               "system_prompt": english_context, "materia": "ingles", "idioma": "en"},
 }
 HISTORICO_MAX_MENSAGENS = 10
 MENSAGEM_ERRO = "Ocorreu um erro ao gerar a resposta."
@@ -57,6 +59,11 @@ def _tutor(model):
     if model not in TUTORES:
         raise InvalidModelError(model)
     return TUTORES[model]
+
+
+def validate_model(model):
+    """Levanta InvalidModelError se model não for um tutor aceito."""
+    _tutor(model)
 
 
 def tutor_for_subject(assunto):

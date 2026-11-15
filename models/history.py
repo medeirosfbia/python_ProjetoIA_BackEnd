@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import uuid4
+from pymongo import ReturnDocument
 from models.mongo_connection import collection
 from messaging.queue_history_producer import publicar_mensagem_historico
 
@@ -48,6 +49,7 @@ def get_chat_info(user_id, chat_id):
     }, {
         "_id": 0,
         "messages": 1,
+        "chat_id": 1,
         "title": 1,
         "model": 1,
         "origin": 1,
@@ -55,6 +57,30 @@ def get_chat_info(user_id, chat_id):
     })
 
     return chat
+
+
+def associate_chat_model(user_id: str, chat_id: str, model: str):
+    """Associa um tutor uma única vez, sem inferir chats legados."""
+    chat = collection.find_one_and_update(
+        {"user_id": user_id, "chat_id": chat_id,
+         "$or": [{"model": {"$exists": False}}, {"model": None}]},
+        {"$set": {"model": model}},
+        projection={"_id": 0, "chat_id": 1, "model": 1},
+        return_document=ReturnDocument.AFTER,
+    )
+    if chat:
+        return chat, False
+
+    # Nunca revela documento de outro usuário: a busca também usa user_id.
+    existing = collection.find_one(
+        {"user_id": user_id, "chat_id": chat_id},
+        {"_id": 0, "chat_id": 1, "model": 1},
+    )
+    if not existing:
+        return None, False
+    if existing.get("model") == model:
+        return existing, False
+    return existing, True
 
 
 def get_chat_messages(user_id, chat_id):

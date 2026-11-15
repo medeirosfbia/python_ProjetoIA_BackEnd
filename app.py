@@ -19,6 +19,7 @@ from controllers.chat_controller import (
     list_chats_controller,
     get_chat_controller,
     delete_chat_controller,
+    associate_chat_model_controller,
 )
 from controllers.exam_controller import (
     list_exams_controller,
@@ -58,7 +59,7 @@ CORS(
     app,
     origins=os.getenv("CORS_ORIGINS", "http://localhost:5173").split(","),
     allow_headers=["Authorization", "Content-Type"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     expose_headers=["X-Chat-ID", "Content-Disposition"],
 )
 
@@ -98,6 +99,10 @@ def route_new_chat():
 @app.route('/chats/<chat_id>/add', methods=['POST'])
 def route_resume_chat(chat_id):
     return continue_chat_controller(chat_id)
+
+@app.route('/chats/<chat_id>/model', methods=['PATCH'])
+def route_associate_chat_model(chat_id):
+    return associate_chat_model_controller(chat_id)
         
 # Conversa sobre uma questão da última tentativa do usuário (ex.: questoes_erradas do dashboard)
 @app.route('/chats/from-question', methods=['POST'])

@@ -13,7 +13,9 @@ from services.chat_service import (
     get_chat_info,
     list_last_chats,
     query_new_chat,
+    validate_model,
 )
+from models.history import associate_chat_model
 
 
 def _request_data():
@@ -86,6 +88,21 @@ def explain_question_controller():
     except QuestionNotGradedError:
         return jsonify({"error": "Questão ainda não corrigida"}), 409
     return _stream_response(response)
+
+
+def associate_chat_model_controller(chat_id):
+    model = _request_data().get("model")
+    try:
+        validate_model(model)
+    except InvalidModelError as error:
+        return jsonify({"error": str(error), "code": "INVALID_CHAT_MODEL"}), 400
+
+    chat, conflict = associate_chat_model(authenticated_user_id(), chat_id, model)
+    if chat is None:
+        return jsonify({"error": "Conversa não encontrada"}), 404
+    if conflict:
+        return jsonify({"error": "O tutor do chat já foi definido", "code": "CHAT_MODEL_CONFLICT"}), 409
+    return jsonify(chat), 200
 
 
 def list_chats_controller():
