@@ -11,6 +11,9 @@ Deployment: Aplicação está deployada na Azure usando as etapas/configuraçõe
 - Configuração (.env)
 - Como rodar (desenvolvimento / produção / Docker)
 - Endpoints principais
+- Notificações push
+- Dashboard de desempenho
+- Tutor (chat)
 - Swagger / OpenAPI
 - Streaming
 - Persistência
@@ -70,6 +73,53 @@ Swagger UI padrão: `http://127.0.0.1:5000/swagger/`
 - GET /chats/{chat_id}?user_id={user_id} — retorna histórico.
 - DELETE /chats/{chat_id}/delete?user_id={user_id} — remove chat.
 
+### Provas
+Criar, editar e deletar provas é permitido só para admins: quem tem o claim `role`/`roles`
+com `ADMIN` no JWT ou cujo username está em `ADMIN_USERS` no `.env`. Usuários comuns
+veem só provas com status `APROVADO` e sem o gabarito.
+- GET /exams?assunto=... — lista provas (resumo, sem questões).
+- GET /exams/{exam_id} — retorna a prova.
+- POST /exams — cria prova (admin).
+- PUT /exams/{exam_id} — substitui a prova (admin).
+- DELETE /exams/{exam_id} — remove a prova (admin); as respostas já enviadas são mantidas.
+- POST /exams/{exam_id}/answers — envia respostas; múltipla escolha é corrigida na hora,
+  dissertativas e desafios de código ficam pendentes. Cada envio vira uma tentativa na
+  coleção `exam_answers`.
+- GET /exams/{exam_id}/answers — tentativas do usuário nesta prova.
+- GET /exams/answers — histórico de desempenho do usuário em todas as provas.
+- GET /exams/{exam_id}/answers/all — tentativas de todos os usuários (admin).
+
+### Materiais das matérias (Azure Blob)
+Arquivos (PDF, DOCX, PPTX, XLSX, TXT, MD, CSV, imagens) guardados no container
+`MATERIALS_CONTAINER` (padrão `aprovia-materiais`, criado privado no primeiro uso), com uma
+pasta por conteúdo: `matematica/aula.pdf`, `ingles/verbos.pdf`. O nome do conteúdo é
+normalizado (`Matemática Básica` → `matematica-basica`). Serão usados como fonte do RAG.
+Todo usuário autenticado pode ler; enviar, substituir e deletar é só para admins.
+- GET /materials/folders — lista as pastas (conteúdos).
+- GET /materials?conteudo=... — lista os arquivos (todos ou de uma pasta).
+- GET /materials/{conteudo}/{nome} — dados do arquivo (tamanho, tipo, quem enviou).
+- GET /materials/{conteudo}/{nome}/download — arquivo em streaming (`?download=1` força o download).
+- POST /materials/{conteudo} — envia arquivo (admin; multipart, campo `arquivo`). 409 se já existir.
+- PUT /materials/{conteudo}/{nome} — substitui o arquivo, mesma extensão (admin).
+- DELETE /materials/{conteudo}/{nome} — remove o arquivo (admin).
+
+```bash
+curl -X POST "http://127.0.0.1:5000/materials/matematica" \
+  -H "Authorization: Bearer $TOKEN" -F "arquivo=@equacoes.pdf"
+```
+
+### Notificações push (app mobile)
+Resumo das rotas (detalhes em [Notificações push](#notificações-push)):
+
+- POST /notifications/tokens — cadastra o aparelho do usuário logado.
+- DELETE /notifications/tokens — remove o aparelho do usuário logado.
+- POST /notifications/send — notificação avulsa (admin).
+
+Para gravar a prova de exemplo (`seeds/exam_example.json`) no MongoDB do `.env`:
+```bash
+python -m seeds.seed_exam_example
+```
+
 Para habilitar a mensageria do histórico, configure `AZURE_STORAGE_CONNECTION_STRING`
 no `.env`. Opcionalmente, altere o nome da fila com `AZURE_QUEUE_NAME`. Cada mensagem
 salva no histórico é publicada automaticamente na fila para consumo posterior.
@@ -80,6 +130,100 @@ curl -N -X POST "http://127.0.0.1:5000/chats/new?user_id=test" \
   -H "Content-Type: application/json" \
   -d '{"model":"qwen2-math","message":"Como resolver 2+2?"}'
 ```
+
+## Notificações push
+
+A API não envia o push diretamente: guarda os aparelhos dos usuários (coleção
+`push_tokens`) e publica um evento na fila `aprovia-notifications`. Quem entrega
+ao celular, via Expo Push, é a Azure Function em `consumers_messaging`. Corpos,
+respostas e códigos de erro de cada rota estão no Swagger.
+
+| Arquivo | O que faz |
+|---|---|
+| `controllers/notification_controller.py` | Converte o resultado em HTTP (201/200, 400, 403, 404, 503). |
+| `services/notification_service.py` | Valida token, plataforma e envio avulso; monta as notificações automáticas. |
+| `models/push_token.py` | Grava (upsert pelo token) e remove o token do usuário no MongoDB. |
+| `messaging/queue_notification_producer.py` | Publica o evento na fila em JSON Base64, como o histórico. |
+| `configs/azure_config.py` | Cria o cliente (e a fila, se não existir) de notificações. |
+
+Regras principais:
+
+- O app cadastra o token após o login e o remove no logout, antes de descartar o JWT.
+- Se outra conta entrar no mesmo aparelho, o token passa a ser dela.
+- Notificações automáticas: prova que passa a `APROVADO` (`data.type = exam_published`,
+  só na transição, não a cada edição) e material enviado (`data.type = material_created`).
+- Uma falha na fila nas notificações automáticas só gera log: a prova ou o material
+  continuam salvos.
+- Lembrete diário: o `authenticate_request` registra o dia (fuso `REMINDER_TIMEZONE`)
+  em que o usuário fez a primeira requisição autenticada (coleção `user_activity`,
+  `services/activity_service.py`). Um cache em memória faz gravar no MongoDB só uma
+  vez por usuário por dia; falha na gravação só gera log. A Function usa isso para
+  lembrar, às 15h, quem ainda não entrou.
+
+Variáveis (opcionais; devem ser iguais na Function): `NOTIFICATIONS_QUEUE_NAME`
+(padrão `aprovia-notifications`), `PUSH_TOKENS_COLLECTION` (padrão `push_tokens`),
+`USER_ACTIVITY_COLLECTION` (padrão `user_activity`) e `REMINDER_TIMEZONE`
+(padrão `America/Sao_Paulo`).
+
+### Testes (`tests/test_notifications.py`)
+
+Usam mocks; não acessam MongoDB, fila nem Expo.
+
+| Grupo | O que cobre |
+|---|---|
+| `NotificationEndpointsTestCase` | Cadastro (201; token/plataforma/corpo inválidos → 400), remoção (200; token de outro usuário → 404) e envio avulso (não admin → 403, padrão `"all"` → 202, validação → 400, fila fora → 503). |
+| `NotificationServiceTestCase` | Destinatários sem repetição, formatos de token aceitos/rejeitados, notificação automática que nunca lança erro, conteúdo da notificação de prova e formato Base64 do produtor. |
+| `test_activity.py` | Uma gravação por usuário por dia, nova gravação no dia seguinte, falha no MongoDB não quebra a requisição, "hoje" no fuso de São Paulo, token válido registra atividade e token inválido não. |
+| `NotificationTriggersTestCase` | Prova criada `APROVADO` notifica; `RASCUNHO` não; `RASCUNHO` → `APROVADO` notifica uma única vez; material enviado notifica. |
+
+Rodar os testes com `AZURE_STORAGE_CONNECTION_STRING` preenchida cria a fila
+`aprovia-notifications` na conta (o `azure_config.py` cria as filas ao ser importado),
+mas nenhuma mensagem é publicada.
+
+## Dashboard de desempenho
+
+`GET /dashboard/me` calcula, na hora, o desempenho do usuário autenticado a partir
+de `exam_answers` e do histórico de dias de uso. O formato completo da resposta está
+no Swagger. Arquivos: `services/dashboard_service.py` (cálculos) e
+`controllers/dashboard_controller.py`.
+
+| Pergunta | Como é calculado |
+|---|---|
+| Onde estava | `inicio`: média das 3 primeiras tentativas; `anterior`: média das 5 antes das últimas 5 |
+| Onde está | `atual`: média das últimas 5 tentativas (geral e por matéria) |
+| Tendência | Regressão linear das últimas 10 tentativas, em p.p. por tentativa: acima de +1 `subindo`, abaixo de -1 `caindo`; precisa de 3 tentativas |
+| O que fazer | `gap` até a meta, projeção de tentativas no ritmo atual e, nas matérias abaixo da meta, tópicos fracos, provas não feitas, provas para refazer, questões erradas e a pasta de materiais |
+
+Regras:
+
+- Notas viram percentual (0-100), pois `nota_maxima` varia entre provas.
+- Só entram questões corrigidas: dissertativas pendentes não contam como zero.
+  Tentativas só com pendentes aparecem em `aguardando_correcao`.
+- Meta padrão de 70% (`DASHBOARD_META_PERCENTUAL`). Depois pode virar uma meta por usuário.
+- Tópicos vêm do campo opcional `topico` de cada questão, copiado para a tentativa
+  na correção. Provas antigas sem `topico` só aparecem por matéria.
+- Constância (`dias_seguidos`, `dias_ultimos_7`, `dias_ultimos_30`) usa a coleção
+  `user_activity_days` (um documento por usuário por dia), gravada junto com `user_activity`.
+- Testes em `tests/test_dashboard.py`: cálculos, montagem com dados simulados, rota,
+  tópico nas provas e histórico de dias.
+
+## Tutor (chat)
+
+Tutores aceitos (`TUTORES` em `services/chat_service.py`): `qwen2-math` (Matemática) e
+`llama3` (Inglês). Outro `model` retorna 400. O tutor fica salvo na conversa.
+
+- **Perfil do aluno:** ao criar a conversa, o prompt do tutor recebe o desempenho recente
+  do aluno na matéria do tutor, a tendência e até 3 tópicos abaixo da meta
+  (`dashboard_service.subject_snapshot`). O texto fica salvo em `context` na conversa e é
+  reutilizado nas mensagens seguintes. Sem tentativas, ou se o cálculo falhar, o tutor
+  responde sem perfil.
+- **Explicar uma questão:** `POST /chats/from-question` abre uma conversa sobre uma questão
+  da última tentativa do aluno (por exemplo, um item de `questoes_erradas` do dashboard).
+  O prompt recebe enunciado, opções, resposta do aluno, resposta correta e explicação do
+  gabarito; o tutor é escolhido pela matéria da prova. Questões pendentes de correção
+  retornam 409.
+- Textos extras do prompt em `services/tutor_context.py`, no idioma do tutor.
+- Testes em `tests/test_chat_service.py` e `tests/test_tutor.py`.
 
 ## Swagger / OpenAPI
 A documentação OpenAPI/Swagger é gerada pelo template em `configs/swagger_config.py`. A UI é exposta em `/swagger/`. O template atualmente referencia o domínio de deploy; atualize se necessário.

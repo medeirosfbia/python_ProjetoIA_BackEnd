@@ -4,6 +4,8 @@ import os
 import jwt
 from flask import g, jsonify, request
 
+from services.activity_service import record_activity
+
 
 def _jwt_key() -> bytes:
     secret = os.getenv("JWT_SECRET_B64")
@@ -21,6 +23,7 @@ def authenticate_request():
         "/swagger/",
         "/flasgger_static/",
         "/apispec_1.json",
+        "/health",
     )
     if request.method == "OPTIONS" or request.path.startswith(public_paths):
         return None
@@ -46,6 +49,8 @@ def authenticate_request():
 
     g.user_id = subject
     g.jwt_claims = claims
+    # Usado pelo lembrete diário para saber quem ainda não entrou hoje
+    record_activity(subject)
     return None
 
 
@@ -54,3 +59,30 @@ def authenticated_user_id() -> str:
     if user_id and user_id != g.user_id:
         raise PermissionError("O usuário informado não corresponde ao token")
     return g.user_id
+
+
+def _token_roles() -> set:
+    claims = getattr(g, "jwt_claims", None) or {}
+    roles = claims.get("roles") or claims.get("role") or []
+    if isinstance(roles, str):
+        roles = [roles]
+    if not isinstance(roles, list):
+        return set()
+    return {
+        str(role).upper().removeprefix("ROLE_")
+        for role in roles
+        if isinstance(role, str)
+    }
+
+
+def is_admin() -> bool:
+    """Admin pelo claim role/roles do JWT ou pela lista ADMIN_USERS do .env."""
+    if "ADMIN" in _token_roles():
+        return True
+
+    admin_users = {
+        user.strip()
+        for user in os.getenv("ADMIN_USERS", "").split(",")
+        if user.strip()
+    }
+    return getattr(g, "user_id", None) in admin_users

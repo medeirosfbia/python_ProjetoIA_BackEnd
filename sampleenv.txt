@@ -18,9 +18,27 @@ URL_CONNECTION_MONGODB=mongodb+srv://<usuario>:<senha>@<cluster>/?appName=AprovI
 DATABASE_NAME=aprovia_db
 ASSISTANT_COLLECTION=assistant
 
+# Coleções de provas e de respostas dos usuários (opcionais; estes são os padrões).
+EXAMS_COLLECTION=exams
+EXAM_ANSWERS_COLLECTION=exam_answers
+# Tokens de push (ExpoPushToken) dos aparelhos dos usuários (opcional; este é o padrão).
+PUSH_TOKENS_COLLECTION=push_tokens
+# Último dia em que cada usuário usou o app (lembrete diário) (opcional; este é o padrão).
+USER_ACTIVITY_COLLECTION=user_activity
+# Histórico de dias de uso (constância no dashboard) (opcional; este é o padrão).
+USER_ACTIVITY_DAYS_COLLECTION=user_activity_days
+# Meta de desempenho do dashboard, em percentual (opcional; este é o padrão).
+DASHBOARD_META_PERCENTUAL=70
+# Fuso usado para decidir o que é "hoje"; deve ser igual ao da Azure Function.
+REMINDER_TIMEZONE=America/Sao_Paulo
+
 # Deve ser a mesma chave Base64 configurada em manager_back/.env.
 # Gere uma chave nova para cada ambiente; não reutilize a chave de produção.
 JWT_SECRET_B64=<chave-base64-compartilhada-com-o-spring>
+
+# Usernames (sub do JWT) com permissão de admin, separados por vírgula.
+# Também é admin quem tiver o claim role/roles com ADMIN no token.
+ADMIN_USERS=<username-admin>
 
 # Origens permitidas pelo backend.
 CORS_ORIGINS=http://localhost:8081
@@ -29,3 +47,11 @@ CORS_ORIGINS=http://localhost:8081
 # Nunca coloque AccountKey real neste arquivo.
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=<nome-da-conta>;AccountKey=<chave-da-conta>;EndpointSuffix=core.windows.net
 QUEUE_NAME=aprovia-chat-history
+# Fila consumida pela Azure Function que envia as notificações push (opcional; este é o padrão).
+NOTIFICATIONS_QUEUE_NAME=aprovia-notifications
+
+# Container do Azure Blob com os materiais das matérias (PDFs etc., futuro contexto do RAG).
+# Usa a mesma AZURE_STORAGE_CONNECTION_STRING; o container é criado privado se não existir.
+MATERIALS_CONTAINER=aprovia-materiais
+# Tamanho máximo de cada arquivo enviado, em MB.
+MATERIALS_MAX_SIZE_MB=50
