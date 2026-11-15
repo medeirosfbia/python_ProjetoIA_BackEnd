@@ -2,11 +2,16 @@ import os
 from dotenv import load_dotenv
 # Antes dos imports do projeto: auth_service já abre a conexão com o MongoDB
 load_dotenv()
+# Telemetria no Application Insights; precisa vir antes do import do Flask para instrumentá-lo
+if os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING"):
+    from azure.monitor.opentelemetry import configure_azure_monitor
+    configure_azure_monitor()
 from flask import Flask, jsonify
 from flask_cors import CORS
 from configs import swagger_config
 from flasgger import Swagger
 from services.auth_service import authenticate_request
+from models.mongo_connection import client
 from controllers.chat_controller import (
     explain_question_controller,
     new_chat_controller,
@@ -73,6 +78,16 @@ def handle_request_too_large(error):
     return jsonify({"error": "Arquivo excede o tamanho máximo permitido"}), 413
 
 swagger = Swagger(app, template=swagger_config.swagger_template, config=swagger_config.swagger_config)
+
+
+# Usado pelo teste de disponibilidade do Application Insights (rota pública)
+@app.route('/health', methods=['GET'])
+def route_health():
+    try:
+        client.admin.command("ping")
+    except Exception:
+        return jsonify({"status": "degraded", "mongodb": "down"}), 503
+    return jsonify({"status": "ok", "mongodb": "up"}), 200
 
         
 @app.route('/chats/new', methods=['POST'])

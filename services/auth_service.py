@@ -23,6 +23,7 @@ def authenticate_request():
         "/swagger/",
         "/flasgger_static/",
         "/apispec_1.json",
+        "/health",
     )
     if request.method == "OPTIONS" or request.path.startswith(public_paths):
         return None
