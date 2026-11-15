@@ -2,6 +2,8 @@ from flask import Response, jsonify, request
 
 from services.auth_service import authenticated_user_id
 from services.chat_service import (
+    ChatNotFoundError,
+    InvalidModelError,
     continue_chat,
     delete_conversation,
     get_chat_info,
@@ -33,7 +35,10 @@ def new_chat_controller():
     if not model or not message:
         return jsonify({"error": "model e message são obrigatórios"}), 400
 
-    response = query_new_chat(authenticated_user_id(), model, message)
+    try:
+        response = query_new_chat(authenticated_user_id(), model, message)
+    except InvalidModelError as error:
+        return jsonify({"error": str(error)}), 400
     return _stream_response(response)
 
 
@@ -42,12 +47,18 @@ def continue_chat_controller(chat_id):
     model = data.get("model")
     message = data.get("message")
 
-    if not model or not message:
-        return jsonify({"error": "model e message são obrigatórios"}), 400
+    # model é opcional: a conversa já guarda o tutor (exigido só em conversas antigas)
+    if not message:
+        return jsonify({"error": "message é obrigatório"}), 400
 
-    response = continue_chat(
-        authenticated_user_id(), chat_id, model, message
-    )
+    try:
+        response = continue_chat(
+            authenticated_user_id(), chat_id, model, message
+        )
+    except InvalidModelError as error:
+        return jsonify({"error": str(error)}), 400
+    except ChatNotFoundError:
+        return jsonify({"error": "Conversa não encontrada"}), 404
     return _stream_response(response)
 
 
